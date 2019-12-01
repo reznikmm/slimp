@@ -7,8 +7,10 @@
 with Ada.Tags.Generic_Dispatching_Constructor;
 
 with Slim.Messages.ANIC;
+with Slim.Messages.BUTN;
 with Slim.Messages.HELO;
 with Slim.Messages.IR;
+with Slim.Messages.META;
 with Slim.Messages.RESP;
 with Slim.Messages.SETD;
 with Slim.Messages.STAT;
@@ -17,6 +19,7 @@ with Slim.Messages.audg;
 with Slim.Messages.audp;
 with Slim.Messages.bdac;
 with Slim.Messages.bled;
+with Slim.Messages.cont;
 with Slim.Messages.grfb;
 with Slim.Messages.grfe;
 with Slim.Messages.grfg;
@@ -36,8 +39,10 @@ package body Slim.Message_Decoders is
 
    Map : constant array (Positive range <>) of Map_Item :=
      (("ANIC", Slim.Messages.ANIC.ANIC_Message'Tag),
+      ("BUTN", Slim.Messages.BUTN.BUTN_Message'Tag),
       ("HELO", Slim.Messages.HELO.HELO_Message'Tag),
       ("IR  ", Slim.Messages.IR.IR_Message'Tag),
+      ("META", Slim.Messages.META.META_Message'Tag),
       ("RESP", Slim.Messages.RESP.RESP_Message'Tag),
       ("SETD", Slim.Messages.SETD.SETD_Message'Tag),
       ("STAT", Slim.Messages.STAT.STAT_Message'Tag),
@@ -46,6 +51,7 @@ package body Slim.Message_Decoders is
       ("audp", Slim.Messages.audp.Audp_Message'Tag),
       ("bdac", Slim.Messages.bdac.Bdac_Message'Tag),
       ("bled", Slim.Messages.bled.Bled_Message'Tag),
+      ("cont", Slim.Messages.cont.Cont_Message'Tag),
       ("grfb", Slim.Messages.grfb.Grfb_Message'Tag),
       ("grfe", Slim.Messages.grfe.Grfe_Message'Tag),
       ("grfg", Slim.Messages.grfg.Grfg_Message'Tag),

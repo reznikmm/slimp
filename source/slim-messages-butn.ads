@@ -4,35 +4,39 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
-with League.Strings;
-with League.String_Vectors;
+package Slim.Messages.BUTN is
+   type BUTN_Message is new Message with private;
 
-package Slim.Messages.RESP is
-   type RESP_Message is new Message with private;
+   type Button_Kind is
+     (Preset_1,
+      Knob_Left, Knob_Right, Something_Else);
 
-   not overriding function Headers (Self : RESP_Message)
-     return League.String_Vectors.Universal_String_Vector;
+   not overriding function Button
+     (Self : BUTN_Message) return Button_Kind;
 
 private
 
    subtype Byte is Ada.Streams.Stream_Element;
 
-   type RESP_Message is new Message with record
-      Value : League.Strings.Universal_String;
-   end record;
+   type BUTN_Message is new Base_Message
+     (Max_8 => 4,
+      Max_16 => 0,
+      Max_32 => 1,
+      Max_64 => 0)
+   with null record;
 
    overriding function Read
      (Data : not null access
         League.Stream_Element_Vectors.Stream_Element_Vector)
-      return RESP_Message;
+      return BUTN_Message;
 
    overriding procedure Write
-     (Self : RESP_Message;
+     (Self : BUTN_Message;
       Tag  : out Message_Tag;
       Data : out League.Stream_Element_Vectors.Stream_Element_Vector);
 
    overriding procedure Visit
-     (Self    : not null access RESP_Message;
+     (Self    : not null access BUTN_Message;
       Visiter : in out Slim.Message_Visiters.Visiter'Class);
 
-end Slim.Messages.RESP;
+end Slim.Messages.BUTN;

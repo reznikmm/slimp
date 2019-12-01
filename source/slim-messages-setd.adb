@@ -13,6 +13,20 @@ package body Slim.Messages.SETD is
      ((Uint_8_Field, 1),   --  Code
       (Custom_Field, 1));  --  Value
 
+   -----------------
+   -- Get_Setting --
+   -----------------
+
+   not overriding function Get_Setting (Self : SETD_Message) return Setting is
+   begin
+      case Self.Data_8 (1) is
+         when 0 =>
+            return (Player_Name, Self.Player);
+         when others =>
+            return (Kind => Something_Else);
+      end case;
+   end Get_Setting;
+
    ----------
    -- Read --
    ----------

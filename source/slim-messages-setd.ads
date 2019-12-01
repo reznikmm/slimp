@@ -10,6 +10,19 @@ package Slim.Messages.SETD is
    type SETD_Message is new Message with private;
    --  Setting reply
 
+   type Setting_Kind is (Player_Name, Something_Else);
+
+   type Setting (Kind : Setting_Kind := Player_Name) is record
+      case Kind is
+         when Player_Name =>
+            Player : League.Strings.Universal_String;
+         when Something_Else =>
+            null;
+      end case;
+   end record;
+
+   not overriding function Get_Setting (Self : SETD_Message) return Setting;
+
 private
 
    type SETD_Message is new Base_Message

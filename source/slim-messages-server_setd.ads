@@ -7,6 +7,8 @@
 package Slim.Messages.Server_setd is
    type Setd_Message is new Message with private;
 
+   not overriding procedure Request_Player_Name (Self : in out Setd_Message);
+
 private
 
    subtype Byte is Ada.Streams.Stream_Element;

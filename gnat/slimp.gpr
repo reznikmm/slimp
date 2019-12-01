@@ -17,5 +17,7 @@ project Slimp is
          "-gnata");
    end Compiler;
 
+   package IDE is
+      for Artifacts_Dir use "/tmp/artifacts";
+   end IDE;
 end Slimp;
-

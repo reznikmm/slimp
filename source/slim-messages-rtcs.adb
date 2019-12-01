@@ -53,13 +53,26 @@ package body Slim.Messages.rtcs is
      (Self    : in out Rtcs_Message;
       Hours   : Natural;
       Minutes : Natural;
-      Seconds : Natural) is
+      Seconds : Natural)
+   is
+      function To_BCD (Value : Natural) return Interfaces.Unsigned_8;
+
+      ------------
+      -- To_BCD --
+      ------------
+
+      function To_BCD (Value : Natural) return Interfaces.Unsigned_8 is
+         Upper : constant Natural := Value / 10;
+         Lower : constant Natural := Value mod 10;
+      begin
+         return Interfaces.Unsigned_8 (Upper * 16 + Lower);
+      end To_BCD;
    begin
       Self.Data_8 :=
         (3,  --  Set time
-         Interfaces.Unsigned_8 (Hours),
-         Interfaces.Unsigned_8 (Minutes),
-         Interfaces.Unsigned_8 (Seconds));
+         To_BCD (Hours),
+         To_BCD (Minutes),
+         To_BCD (Seconds));
    end Set_Time;
 
    -----------

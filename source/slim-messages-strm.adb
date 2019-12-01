@@ -4,6 +4,8 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Characters.Wide_Wide_Latin_1;
+
 with League.Text_Codecs;
 
 with Slim.Message_Visiters;
@@ -27,44 +29,8 @@ package body Slim.Messages.strm is
       (Uint_8_Field, 1),   --  Reserved
       (Uint_32_Field, 1),  --  Replay_Gain
       (Uint_16_Field, 1),  --  Server_Port
-      (Uint_32_Field, 1),  --  Code
-      (Custom_Field, 1));  --  Server_IP
-
-   ----------------
-   -- Initialize --
-   ----------------
-
-   not overriding procedure Initialize
-     (Self    : in out Strm_Message;
-      Command : Play_Command;
-      Format  : Play_Format;
-      Request : League.Strings.Universal_String)
-   is
-   begin
-      Self.Data_8 :=
-        ((case Command is
-            when Start => Character'Pos ('s'),
-            when Pause => Character'Pos ('p'),
-            when Unpause => Character'Pos ('u'),
-            when Stop => Character'Pos ('q'),
-            when Status  => Character'Pos ('t'),
-            when Flush  => Character'Pos ('f'),
-            when Skip_Ahead => Character'Pos ('a')),
-         Character'Pos ('0'),   --  Auto_Start
-         (case Format is when MP3 => Character'Pos ('m')),   --  Format
-         Character'Pos ('?'),   --  PCM_Sample_Size
-         Character'Pos ('?'),   --  PCM_Sample_Rate
-         Character'Pos ('?'),   --  PCM_Channels
-         Character'Pos ('?'),   --  PCM_Endian
-         0,   --  Threshold
-         0,   --  Spdif
-         0,   --  Transition_Period
-         Character'Pos ('0'),   --  Transition_Type
-         0,   --  Flags
-         0,   --  Output_Threshold
-         0);   --  Reserved
-      Self.Request := Request;
-   end Initialize;
+      (Uint_8_Field, 4),   --  Server_IP
+      (Custom_Field, 1));  --  Request
 
    ----------
    -- Read --
@@ -102,6 +68,81 @@ package body Slim.Messages.strm is
 
       Input := Content'Last + 1;
    end Read_Custom_Field;
+
+   ----------
+   -- Stop --
+   ----------
+
+   not overriding procedure Simple_Command
+     (Self    : in out Strm_Message;
+      Command : Play_Command) is
+   begin
+      Self.Data_8 :=
+        ((case Command is
+            when Start => Character'Pos ('s'),
+            when Pause => Character'Pos ('p'),
+            when Unpause => Character'Pos ('u'),
+            when Stop => Character'Pos ('q'),
+            when Status  => Character'Pos ('t'),
+            when Flush  => Character'Pos ('f'),
+            when Skip_Ahead => Character'Pos ('a')),
+         Character'Pos ('0'),   --  Auto_Start
+         Character'Pos ('m'),   --  Format
+         Character'Pos ('?'),   --  PCM_Sample_Size
+         Character'Pos ('?'),   --  PCM_Sample_Rate
+         Character'Pos ('?'),   --  PCM_Channels
+         Character'Pos ('?'),   --  PCM_Endian
+         0,   --  Threshold
+         0,   --  Spdif
+         0,   --  Transition_Period
+         Character'Pos ('0'),   --  Transition_Type
+         0,   --  Flags
+         0,   --  Output_Threshold
+         0,   --  Reserved
+         0, 0, 0, 0);  --  Server_IP
+      Self.Request.Clear;
+   end Simple_Command;
+
+   -----------
+   -- Start --
+   -----------
+
+   not overriding procedure Start
+     (Self        : in out Strm_Message;
+      Server_IP   : GNAT.Sockets.Inet_Addr_V4_Type;
+      Server_Port : GNAT.Sockets.Port_Type;
+      Request     : League.String_Vectors.Universal_String_Vector)
+   is
+      subtype X is Interfaces.Unsigned_8;
+
+      CR_LF : constant Wide_Wide_String :=
+        (Ada.Characters.Wide_Wide_Latin_1.CR,
+         Ada.Characters.Wide_Wide_Latin_1.LF);
+   begin
+      Self.Data_8 :=
+        (Character'Pos ('s'),
+         Character'Pos ('3'),   --  Auto_Start = direct+auto
+         Character'Pos ('m'),   --  Format MP3
+         Character'Pos ('?'),   --  PCM_Sample_Size
+         Character'Pos ('?'),   --  PCM_Sample_Rate
+         Character'Pos ('?'),   --  PCM_Channels
+         Character'Pos ('?'),   --  PCM_Endian
+         20,   --  Threshold, KB input buffer data before autostart or notify
+         0,   --  Spdif
+         0,   --  Transition_Period
+         Character'Pos ('0'),   --  Transition_Type
+         0,   --  Flags
+         1,   --  Output Threshold, output buffer before playback starts 0.1s
+         0,   --  Reserved
+         X (Server_IP (1)),
+         X (Server_IP (2)),
+         X (Server_IP (3)),
+         X (Server_IP (4)));
+
+      Self.Data_16 := (1 => Interfaces.Unsigned_16 (Server_Port)); --  Port
+      Self.Data_32 := (1 => 0); --  replay gain
+      Self.Request := Request.Join (CR_LF);
+   end Start;
 
    -----------
    -- Visit --

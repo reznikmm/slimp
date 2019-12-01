@@ -5,8 +5,10 @@
 -------------------------------------------------------------
 
 with Slim.Messages.ANIC;
+with Slim.Messages.BUTN;
 with Slim.Messages.HELO;
 with Slim.Messages.IR;
+with Slim.Messages.META;
 with Slim.Messages.RESP;
 with Slim.Messages.SETD;
 with Slim.Messages.STAT;
@@ -16,6 +18,7 @@ with Slim.Messages.audg;
 with Slim.Messages.audp;
 with Slim.Messages.bdac;
 with Slim.Messages.bled;
+with Slim.Messages.cont;
 with Slim.Messages.grfb;
 with Slim.Messages.grfe;
 with Slim.Messages.grfg;
@@ -34,6 +37,10 @@ package Slim.Message_Visiters is
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.ANIC.ANIC_Message) is null;
 
+   not overriding procedure BUTN
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.BUTN.BUTN_Message) is null;
+
    not overriding procedure HELO
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.HELO.HELO_Message) is null;
@@ -41,6 +48,10 @@ package Slim.Message_Visiters is
    not overriding procedure IR
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.IR.IR_Message) is null;
+
+   not overriding procedure META
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.META.META_Message) is null;
 
    not overriding procedure RESP
      (Self    : in out Visiter;
@@ -73,6 +84,10 @@ package Slim.Message_Visiters is
    not overriding procedure bled
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.bled.Bled_Message) is null;
+
+   not overriding procedure cont
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.cont.Cont_Message) is null;
 
    not overriding procedure grfb
      (Self    : in out Visiter;

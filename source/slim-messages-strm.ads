@@ -4,7 +4,10 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with GNAT.Sockets;
+
 with League.Strings;
+with League.String_Vectors;
 
 package Slim.Messages.strm is
    type Strm_Message is new Message with private;
@@ -14,20 +17,24 @@ package Slim.Messages.strm is
 
    type Play_Format is (MP3);
 
-   not overriding procedure Initialize
+   not overriding procedure Simple_Command
      (Self    : in out Strm_Message;
-      Command : Play_Command;
-      Format  : Play_Format;
-      Request : League.Strings.Universal_String);
+      Command : Play_Command);
+
+   not overriding procedure Start
+     (Self        : in out Strm_Message;
+      Server_IP   : GNAT.Sockets.Inet_Addr_V4_Type;
+      Server_Port : GNAT.Sockets.Port_Type;
+      Request     : League.String_Vectors.Universal_String_Vector);
 
 private
 
    subtype Byte is Ada.Streams.Stream_Element;
 
    type Strm_Message is new Base_Message
-     (Max_8 => 14,
+     (Max_8 => 18,
       Max_16 => 1,
-      Max_32 => 2,
+      Max_32 => 1,
       Max_64 => 0)
    with record
       Request : League.Strings.Universal_String;

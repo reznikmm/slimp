@@ -25,6 +25,15 @@ package body Slim.Messages.Server_setd is
       end return;
    end Read;
 
+   -------------------------
+   -- Request_Player_Name --
+   -------------------------
+
+   not overriding procedure Request_Player_Name (Self : in out Setd_Message) is
+   begin
+      Self.Data_8 := (1 => 0);
+   end Request_Player_Name;
+
    -----------
    -- Visit --
    -----------
