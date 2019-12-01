@@ -16,6 +16,7 @@ with League.Stream_Element_Vectors;
 with League.Strings;
 with League.String_Vectors;
 
+with Slim.Fonts;
 with Slim.Message_Decoders;
 with Slim.Message_Visiters;
 with Slim.Messages.aude;
@@ -64,6 +65,7 @@ procedure Slim.Run is
       State  : Player_State := Initialization;
       Volume : Slim.Messages.audg.Volume := 50;
       Ping   : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Font   : Slim.Fonts.Font;
    end record;
 --
    package Visiters is
@@ -193,8 +195,53 @@ procedure Slim.Run is
         (Self    : in out Visiter;
          Message : not null access Slim.Messages.META.META_Message)
       is
-         pragma Unreferenced (Self);
+         use type Ada.Streams.Stream_Element_Offset;
+
+         procedure Draw_Pixel (X, Y : Positive);
+
+         procedure Draw_Text is new Slim.Fonts.Draw_Text
+           (Coordinate => Integer,
+            Draw_Pixel => Draw_Pixel);
+
+         Player : Run.Player renames Self.Player.all;
+         Text   : League.Strings.Universal_String := Message.Value;
+         Grfe   : Slim.Messages.grfe.Grfe_Message;
+         Buffer : Ada.Streams.Stream_Element_Array (1 .. 32 * 160 / 8) :=
+           (others => 0);
+
+         ----------------
+         -- Draw_Pixel --
+         ----------------
+
+         procedure Draw_Pixel (X, Y : Positive) is
+            use type Ada.Streams.Stream_Element;
+            Index : constant Ada.Streams.Stream_Element_Offset :=
+              Ada.Streams.Stream_Element_Offset ((X - 1) * 4 + (32 - Y) / 8);
+            Mask : constant Ada.Streams.Stream_Element :=
+              2 ** ((Y - 1) mod 8);
+         begin
+            Buffer (Index) := Buffer (Index) or Mask;
+         end Draw_Pixel;
+
+         Prefix : constant Wide_Wide_String := "StreamTitle='";
+         Suffix : constant Wide_Wide_String := "';";
       begin
+         if Text.Starts_With (Prefix) then
+            Text := Text.Tail_From (Prefix'Length + 1);
+         end if;
+
+         if Text.Ends_With (Suffix) then
+            Text := Text.Head_To (Text.Length - Suffix'Length);
+         end if;
+
+         while Fonts.Size (Player.Font, Text).Width > 160 loop
+            Text := Text.Head_To (Text.Length - 1);
+         end loop;
+
+         Draw_Text (Player.Font, Text, 0, 5);
+         Grfe.Initialize (0, Buffer);
+         Write_Message (Player.Socket, Grfe);
+
          Ada.Wide_Wide_Text_IO.Put_Line (Message.Value.To_Wide_Wide_String);
       end META;
 
@@ -483,6 +530,8 @@ procedure Slim.Run is
       accept Start (Value : Socket_Type) do
          Player.Socket := Value;
       end Start;
+
+      Fonts.Read (Player.Font, +"10x20-ISO8859-5");
 
       GNAT.Sockets.Set_Socket_Option
         (Player.Socket,
