@@ -25,6 +25,16 @@ package body Slim.Messages.STAT is
       (Uint_32_Field, 1),  --  server timestamp - reflected from an strm-t cmd
       (Uint_16_Field, 1));  --  error code - used with STMn
 
+   ---------------------
+   -- Elapsed_Seconds --
+   ---------------------
+
+   not overriding function Elapsed_Seconds
+     (Self : STAT_Message) return Natural is
+   begin
+      return Natural (Self.Data_32 (6));
+   end Elapsed_Seconds;
+
    -----------
    -- Event --
    -----------
@@ -61,6 +71,15 @@ package body Slim.Messages.STAT is
    begin
       Visiter.STAT (Self);
    end Visit;
+
+   ----------------
+   -- WiFi_Level --
+   ----------------
+
+   not overriding function WiFi_Level (Self : STAT_Message) return Natural is
+   begin
+      return Natural (Self.Data_16 (1));
+   end WiFi_Level;
 
    -----------
    -- Write --

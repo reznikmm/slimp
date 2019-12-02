@@ -11,6 +11,11 @@ package Slim.Messages.STAT is
 
    not overriding function Event (Self : STAT_Message) return Event_Kind;
 
+   not overriding function WiFi_Level (Self : STAT_Message) return Natural;
+
+   not overriding function Elapsed_Seconds
+     (Self : STAT_Message) return Natural;
+
 private
 
    subtype Byte is Ada.Streams.Stream_Element;
