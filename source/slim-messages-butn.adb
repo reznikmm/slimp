@@ -28,6 +28,8 @@ package body Slim.Messages.BUTN is
                return Knob_Right;
             when 16#17# =>
                return Pause;
+            when 16#0D# =>
+               return Back;
             when others =>
                return Something_Else;
          end case;

@@ -4,6 +4,7 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Calendar;
 with Ada.Text_IO;
 
 with League.String_Vectors;
@@ -65,10 +66,40 @@ package body Slim.Players.Play_State_Visiters is
                Write_Message (Player.Socket, Strm);
                Player.State.Paused := not Player.State.Paused;
             end;
+
+         when Slim.Messages.BUTN.Back =>
+            declare
+               use type Ada.Calendar.Time;
+
+               Strm : Slim.Messages.strm.Strm_Message;
+            begin
+               Strm.Simple_Command (Slim.Messages.strm.Stop);
+               Write_Message (Player.Socket, Strm);
+               Player.State := (Idle, Ada.Calendar.Clock - 60.0);
+            end;
+
          when others =>
             null;
       end case;
    end BUTN;
+
+   ----------
+   -- DSCO --
+   ----------
+
+   overriding procedure DSCO
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.DSCO.DSCO_Message)
+   is
+      pragma Unreferenced (Message);
+
+      use type Ada.Calendar.Time;
+
+      Player : Players.Player renames Self.Player.all;
+   begin
+      --  got disconnection on the data channel
+      Player.State := (Idle, Ada.Calendar.Clock - 60.0);
+   end DSCO;
 
    ----------
    -- META --

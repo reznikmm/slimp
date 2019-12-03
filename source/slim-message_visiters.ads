@@ -6,6 +6,7 @@
 
 with Slim.Messages.ANIC;
 with Slim.Messages.BUTN;
+with Slim.Messages.DSCO;
 with Slim.Messages.HELO;
 with Slim.Messages.IR;
 with Slim.Messages.META;
@@ -40,6 +41,10 @@ package Slim.Message_Visiters is
    not overriding procedure BUTN
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.BUTN.BUTN_Message) is null;
+
+   not overriding procedure DSCO
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.DSCO.DSCO_Message) is null;
 
    not overriding procedure HELO
      (Self    : in out Visiter;

@@ -7,6 +7,7 @@
 with Slim.Message_Visiters;
 
 with Slim.Messages.BUTN;
+with Slim.Messages.DSCO;
 with Slim.Messages.META;
 with Slim.Messages.RESP;
 
@@ -20,6 +21,10 @@ package Slim.Players.Play_State_Visiters is
    overriding procedure BUTN
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.BUTN.BUTN_Message);
+
+   overriding procedure DSCO
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.DSCO.DSCO_Message);
 
    overriding procedure META
      (Self    : in out Visiter;
