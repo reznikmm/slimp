@@ -4,14 +4,18 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Slim.Players.Displays;
+
 package Slim.Messages.grfe is
    type Grfe_Message is new Message with private;
    --  Sends a bitmap to the client for display.
 
    not overriding procedure Initialize
-     (Self   : in out Grfe_Message;
-      Offset : Natural;
-      Value  : Ada.Streams.Stream_Element_Array);
+     (Self       : in out Grfe_Message;
+      Value      : Ada.Streams.Stream_Element_Array;
+      Transition : Slim.Players.Displays.Transition_Kind :=
+        Slim.Players.Displays.None;
+      Offset     : Natural := 0);
 
    not overriding function Data
      (Self : Grfe_Message) return Ada.Streams.Stream_Element_Array;

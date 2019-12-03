@@ -52,7 +52,8 @@ package body Slim.Players.Idle_State_Visiters is
                  (Play,
                   Volume          => 30,
                   Volume_Set_Time => Ada.Calendar.Clock - 60.0,
-                  Song            => League.Strings.Empty_Universal_String);
+                  Song            => League.Strings.Empty_Universal_String,
+                  Paused          => False);
             end;
          when others =>
             null;

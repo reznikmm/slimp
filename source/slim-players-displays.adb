@@ -40,7 +40,7 @@ package body Slim.Players.Displays is
 
       Line : League.Strings.Universal_String := Text;
    begin
-      while Fonts.Size (Font, Line).Width > 160 loop
+      while Fonts.Size (Font, Line).Right + X - 1 > 160 loop
          Line := Line.Head_To (Line.Length - 1);
       end loop;
 
@@ -59,7 +59,7 @@ package body Slim.Players.Displays is
       use type Ada.Streams.Stream_Element;
 
       Index : constant Ada.Streams.Stream_Element_Offset :=
-        Ada.Streams.Stream_Element_Offset ((X - 1) * 4 + (32 - Y) / 8);
+        Ada.Streams.Stream_Element_Offset ((X - 1) * 4 + (32 - Y) / 8 + 1);
       Mask : constant Ada.Streams.Stream_Element :=
         2 ** ((Y - 1) mod 8);
    begin
@@ -85,10 +85,14 @@ package body Slim.Players.Displays is
    -- Send_Message --
    ------------------
 
-   procedure Send_Message (Self   : Display) is
+   procedure Send_Message
+     (Self       : Display;
+      Transition : Transition_Kind := None;
+      Offset     : Natural := 0)
+   is
       Grfe : Slim.Messages.grfe.Grfe_Message;
    begin
-      Grfe.Initialize (0, Self.Buffer);
+      Grfe.Initialize (Self.Buffer, Transition, Offset);
       Write_Message (Self.Socket, Grfe);
    end Send_Message;
 

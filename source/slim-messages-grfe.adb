@@ -64,13 +64,24 @@ package body Slim.Messages.grfe is
    ----------------
 
    not overriding procedure Initialize
-     (Self   : in out Grfe_Message;
-      Offset : Natural;
-      Value  : Ada.Streams.Stream_Element_Array) is
+     (Self       : in out Grfe_Message;
+      Value      : Ada.Streams.Stream_Element_Array;
+      Transition : Slim.Players.Displays.Transition_Kind :=
+        Slim.Players.Displays.None;
+      Offset     : Natural := 0)
+   is
+      use Slim.Players.Displays;
+
+      Map : constant array (Transition_Kind) of Interfaces.Unsigned_8 :=
+        (None  => Character'Pos ('c'),
+         Left  => Character'Pos ('l'),
+         Right => Character'Pos ('r'),
+         Up    => Character'Pos ('u'),
+         Down  => Character'Pos ('d'));
    begin
       Self.Data_16 (1) := Interfaces.Unsigned_16 (Offset);
-      Self.Data_8 (1) := Character'Pos ('c');  --  Transition
-      Self.Data_8 (2) := 0;  --  Param
+      Self.Data_8 (1) := Map (Transition);  --  Transition
+      Self.Data_8 (2) := Interfaces.Unsigned_8 (Offset);  --  Param
       Self.Data.Clear;
       Self.Data.Append (Value);
    end Initialize;

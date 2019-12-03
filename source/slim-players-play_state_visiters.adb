@@ -10,6 +10,7 @@ with League.String_Vectors;
 
 with Slim.Messages.audg;
 with Slim.Messages.cont;
+with Slim.Messages.strm;
 
 with Slim.Players.Displays;
 
@@ -52,6 +53,18 @@ package body Slim.Players.Play_State_Visiters is
                Update_Display (Player);
             end;
 
+         when Slim.Messages.BUTN.Pause =>
+            declare
+               Map : constant array (Boolean)
+                 of Slim.Messages.strm.Play_Command :=
+                   (False => Slim.Messages.strm.Pause,
+                    True  => Slim.Messages.strm.Unpause);
+               Strm    : Slim.Messages.strm.Strm_Message;
+            begin
+               Strm.Simple_Command (Map (Player.State.Paused));
+               Write_Message (Player.Socket, Strm);
+               Player.State.Paused := not Player.State.Paused;
+            end;
          when others =>
             null;
       end case;
@@ -66,8 +79,19 @@ package body Slim.Players.Play_State_Visiters is
       Message : not null access Slim.Messages.META.META_Message)
    is
       Player : Players.Player renames Self.Player.all;
+      Text   : League.Strings.Universal_String := Message.Value;
+      Prefix : constant Wide_Wide_String := "StreamTitle='";
+      Suffix : constant Wide_Wide_String := "';";
    begin
-      Player.State.Song := Message.Value;
+      if Text.Starts_With (Prefix) then
+         Text := Text.Tail_From (Prefix'Length + 1);
+      end if;
+
+      if Text.Ends_With (Suffix) then
+         Text := Text.Head_To (Text.Length - Suffix'Length);
+      end if;
+
+      Player.State.Song := Text;
       Update_Display (Player);
    end META;
 
@@ -132,7 +156,11 @@ package body Slim.Players.Play_State_Visiters is
          Player.State.Song.Append ("Connected");
       end if;
 
-      Ada.Text_IO.Put_Line (Message.Event);
+      Update_Display (Player);
+
+      if Message.Event /= "STMt" then
+         Ada.Text_IO.Put_Line (Message.Event);
+      end if;
    end STAT;
 
    --------------------
@@ -150,22 +178,37 @@ package body Slim.Players.Play_State_Visiters is
         Natural'Wide_Wide_Image (Self.State.Volume);
 
    begin
+      Slim.Players.Displays.Clear (Display);
+
       if Time - Self.State.Volume_Set_Time < 3.0 or Song.Is_Empty then
          Text.Append ("Volume:");
          Text.Append (Volume);
          Text.Append ("%");
-      else
-         Text.Append (Song);
-      end if;
 
-      Slim.Players.Displays.Clear (Display);
+         Slim.Players.Displays.Draw_Text
+           (Self => Display,
+            X    => 1,
+            Y    => 6,
+            Font => Self.Font,
+            Text => Text);
+      elsif Self.State.Paused then
+
+         Text.Append ("Pause");
+
+         Slim.Players.Displays.Draw_Text
+           (Self => Display,
+            X    => 1,
+            Y    => 2 - Slim.Fonts.Size (Self.Font, Song).Bottom,
+            Font => Self.Font,
+            Text => Text);
+      end if;
 
       Slim.Players.Displays.Draw_Text
         (Self => Display,
          X    => 1,
-         Y    => 6,
+         Y    => 32 - Slim.Fonts.Size (Self.Font, Song).Top,
          Font => Self.Font,
-         Text => Text);
+         Text => Song);
 
       Slim.Players.Displays.Send_Message (Display);
    end Update_Display;

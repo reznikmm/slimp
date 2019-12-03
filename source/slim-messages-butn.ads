@@ -9,6 +9,7 @@ package Slim.Messages.BUTN is
 
    type Button_Kind is
      (Preset_1,
+      Pause,
       Knob_Left, Knob_Right, Something_Else);
 
    not overriding function Button

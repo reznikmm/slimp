@@ -71,7 +71,7 @@ package body Slim.Players.Connected_State_Visiters is
       Write_Message (Player.Socket, Grfb);
 
       --  Send splash screen
-      Grfe.Initialize (0, Player.Splash.To_Stream_Element_Array);
+      Grfe.Initialize (Player.Splash.To_Stream_Element_Array);
       Write_Message (Player.Socket, Grfe);
 
       --  deactivate visualizer

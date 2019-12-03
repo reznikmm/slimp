@@ -59,10 +59,10 @@ private
    type Base_Message (Max_8, Max_16, Max_32, Max_64 : Natural) is abstract
      new Message with
    record
-      Data_8  : Uint_8_Array  (1 .. Max_8);
-      Data_16 : Uint_16_Array (1 .. Max_16);
-      Data_32 : Uint_32_Array (1 .. Max_32);
-      Data_64 : Uint_64_Array (1 .. Max_64);
+      Data_8  : Uint_8_Array  (1 .. Max_8) := (others => 0);
+      Data_16 : Uint_16_Array (1 .. Max_16) := (others => 0);
+      Data_32 : Uint_32_Array (1 .. Max_32) := (others => 0);
+      Data_64 : Uint_64_Array (1 .. Max_64) := (others => 0);
    end record;
 
    not overriding procedure Read_Custom_Field

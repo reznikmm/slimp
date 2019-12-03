@@ -23,7 +23,12 @@ package Slim.Players.Displays is
       X, Y : Positive;
       Set  : Boolean := True) with Inline;
 
-   procedure Send_Message (Self   : Display);
+   type Transition_Kind is (None, Left, Right, Up, Down);
+
+   procedure Send_Message
+     (Self       : Display;
+      Transition : Transition_Kind := None;
+      Offset     : Natural := 0);
 
    procedure Initialize
      (Self   : in out Display;
@@ -31,8 +36,6 @@ package Slim.Players.Displays is
    --  For internal purposes
 
 private
-
-   use type Ada.Streams.Stream_Element_Offset;
 
    type Display (Size : Ada.Streams.Stream_Element_Offset) is record
       Socket : GNAT.Sockets.Socket_Type;

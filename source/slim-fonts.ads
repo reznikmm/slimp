@@ -17,13 +17,14 @@ package Slim.Fonts is
       Name : League.Strings.Universal_String);
 
    type Bounding_Box is record
-      Width  : Natural;
-      Height : Natural;
+      Left, Right : Integer;
+      Top, Bottom : Integer;
    end record;
 
    function Size
      (Self : Font;
       Text : League.Strings.Universal_String) return Bounding_Box;
+   --  Return bounding box for given text, as if it's printed with zero offsets
 
    generic
       type Coordinate is range <>;

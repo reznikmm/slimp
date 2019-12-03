@@ -286,22 +286,44 @@ package body Slim.Fonts is
    function Size
      (Self : Font; Text : League.Strings.Universal_String) return Bounding_Box
    is
-      Result : Bounding_Box := (0, 0);
+      Result : Bounding_Box := (others => 0);
       Char   : Wide_Wide_Character;
       Cursor : Glyph_Bitmap_Maps.Cursor;
-      Width  : Natural;
+      Glyph  : Glyph_Bitmap_Access;
+      Width  : Natural := 0;
+      First  : Boolean := True;
    begin
+      if Text.Length = 0 then
+         return Result;
+      end if;
+
       for J in 1 .. Text.Length loop
          Char := Text.Element (J).To_Wide_Wide_Character;
          Cursor := Self.Map.Find (Char);
 
          if Glyph_Bitmap_Maps.Has_Element (Cursor) then
-            Width := Natural (Glyph_Bitmap_Maps.Element (Cursor).Dev_Width);
-         else
-            Width := Unknown_Char_Width;
-         end if;
+            Glyph := Glyph_Bitmap_Maps.Element (Cursor);
 
-         Result.Width := Result.Width + Width;
+            if First then
+               Result.Top := Integer (Glyph.Offset_Y + Glyph.Height);
+               Result.Bottom := Integer (Glyph.Offset_Y + 1);
+               Result.Left := Width + Integer (Glyph.Offset_X + 1);
+               Result.Right := Width + Integer (Glyph.Offset_X + Glyph.Width);
+               First := False;
+            else
+               Result.Top := Integer'Max
+                 (Result.Top,
+                  Integer (Glyph.Offset_Y + Glyph.Height));
+               Result.Bottom := Integer'Min
+                 (Result.Bottom,
+                  Integer (Glyph.Offset_Y + 1));
+               Result.Right := Width + Integer (Glyph.Offset_X + Glyph.Width);
+            end if;
+
+            Width := Width + Natural (Glyph.Dev_Width);
+         else
+            Width := Width + Unknown_Char_Width;
+         end if;
       end loop;
 
       return Result;
