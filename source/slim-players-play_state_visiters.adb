@@ -9,7 +9,6 @@ with Ada.Text_IO;
 
 with League.String_Vectors;
 
-with Slim.Messages.audg;
 with Slim.Messages.cont;
 with Slim.Messages.strm;
 
@@ -32,27 +31,13 @@ package body Slim.Players.Play_State_Visiters is
    begin
       case Button is
          when Slim.Messages.BUTN.Knob_Left =>
-            declare
-               Audg   : Slim.Messages.audg.Audg_Message;
-            begin
-               Player.State.Volume_Set_Time := Ada.Calendar.Clock;
-               Player.State.Volume := Natural'Max (0, Player.State.Volume - 5);
-               Audg.Set_Volume (Player.State.Volume);
-               Write_Message (Player.Socket, Audg);
-               Update_Display (Player);
-            end;
+            Player.Volume (Natural'Max (0, Player.State.Volume - 5));
+            Update_Display (Player);
 
          when Slim.Messages.BUTN.Knob_Right =>
-            declare
-               Audg   : Slim.Messages.audg.Audg_Message;
-            begin
-               Player.State.Volume_Set_Time := Ada.Calendar.Clock;
-               Player.State.Volume :=
-                 Natural'Min (100, Player.State.Volume + 5);
-               Audg.Set_Volume (Player.State.Volume);
-               Write_Message (Player.Socket, Audg);
-               Update_Display (Player);
-            end;
+            Player.Volume (Natural'Min (100, Player.State.Volume + 5));
+            Update_Display (Player);
+            Update_Display (Player);
 
          when Slim.Messages.BUTN.Pause =>
             declare
@@ -68,15 +53,7 @@ package body Slim.Players.Play_State_Visiters is
             end;
 
          when Slim.Messages.BUTN.Back =>
-            declare
-               use type Ada.Calendar.Time;
-
-               Strm : Slim.Messages.strm.Strm_Message;
-            begin
-               Strm.Simple_Command (Slim.Messages.strm.Stop);
-               Write_Message (Player.Socket, Strm);
-               Player.State := (Idle, Ada.Calendar.Clock - 60.0);
-            end;
+            Player.Stop;
 
          when others =>
             null;
@@ -98,7 +75,7 @@ package body Slim.Players.Play_State_Visiters is
       Player : Players.Player renames Self.Player.all;
    begin
       --  got disconnection on the data channel
-      Player.State := (Idle, Ada.Calendar.Clock - 60.0);
+      Player.State := (Idle, Ada.Calendar.Clock - 60.0, Player.First_Menu);
    end DSCO;
 
    ----------
@@ -237,7 +214,7 @@ package body Slim.Players.Play_State_Visiters is
       Slim.Players.Displays.Draw_Text
         (Self => Display,
          X    => 1,
-         Y    => 32 - Slim.Fonts.Size (Self.Font, Song).Top,
+         Y    => 33 - Slim.Fonts.Size (Self.Font, Song).Top,
          Font => Self.Font,
          Text => Song);
 

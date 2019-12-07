@@ -86,7 +86,8 @@ procedure Slim.Run is
          Player.Initialize
            (Socket => Value,
             Font   => +"10x20-ISO8859-5",
-            Splash => +"data/splash.dat");
+            Splash => +"data/splash.dat",
+            Menu   => +"data/menu.json");
       end Start;
 
       loop

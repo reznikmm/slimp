@@ -139,7 +139,11 @@ package body Slim.Players.Connected_State_Visiters is
       --  Ask player name
       Setd.Request_Player_Name;
       Write_Message (Player.Socket, Setd);
-      Player.State := (Idle, Ada.Calendar.Clock - 60.0);
+      Player.State :=
+        (Idle,
+         Ada.Calendar.Clock - 60.0,
+         Menu_View  => Player.First_Menu);
+
    end STAT;
 
 end Slim.Players.Connected_State_Visiters;

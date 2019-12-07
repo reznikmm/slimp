@@ -6,17 +6,12 @@
 
 with Ada.Wide_Wide_Text_IO;
 
-with League.String_Vectors;
 
 with Slim.Players.Displays;
-with Slim.Messages.strm;
 
 package body Slim.Players.Idle_State_Visiters is
 
-   function "+" (X : Wide_Wide_String) return League.Strings.Universal_String
-     renames League.Strings.To_Universal_String;
-
-   procedure Update_Display (Self : Player);
+   procedure Update_Display (Self : in out Player);
 
    ----------
    -- BUTN --
@@ -26,35 +21,28 @@ package body Slim.Players.Idle_State_Visiters is
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.BUTN.BUTN_Message)
    is
-      use type Ada.Calendar.Time;
-
       Player : Players.Player renames Self.Player.all;
       Button : constant Slim.Messages.BUTN.Button_Kind := Message.Button;
    begin
       case Button is
-         when Slim.Messages.BUTN.Preset_1 =>
-            declare
-               Strm    : Slim.Messages.strm.Strm_Message;
-               Request : League.String_Vectors.Universal_String_Vector;
-            begin
-               Request.Append (+"GET /stream-128kmp3-YogaChill HTTP/1.0");
-               Request.Append (+"Host: 178.32.111.41:8027");
-               Request.Append (+"Icy-Metadata: 1");
-               Request.Append (+"");
-               Request.Append (+"");
-               Strm.Start
-                 (Server_IP   => (178, 32, 111, 41),
-                  Server_Port => 8027,
-                  Request     => Request);
-               Write_Message (Player.Socket, Strm);
+         when Slim.Messages.BUTN.Back =>
+            Player.State.Menu_View.Back;
+            Update_Display (Player);
 
-               Player.State :=
-                 (Play,
-                  Volume          => 30,
-                  Volume_Set_Time => Ada.Calendar.Clock - 60.0,
-                  Song            => League.Strings.Empty_Universal_String,
-                  Paused          => False);
-            end;
+         when Slim.Messages.BUTN.Knob_Left =>
+            Player.State.Menu_View.Up;
+            Update_Display (Player);
+
+         when Slim.Messages.BUTN.Knob_Right =>
+            Player.State.Menu_View.Down;
+            Update_Display (Player);
+
+         when Slim.Messages.BUTN.Knob_Push =>
+            Player.State.Menu_View.Enter;
+            Update_Display (Player);
+
+         when Slim.Messages.BUTN.Preset_1 =>
+            Player.Play_Radio (+"http://files.yogaradio.fm:8000/YOGAr256");
          when others =>
             null;
       end case;
@@ -124,7 +112,7 @@ package body Slim.Players.Idle_State_Visiters is
    -- Update_Display --
    --------------------
 
-   procedure Update_Display (Self : Player) is
+   procedure Update_Display (Self : in out Player) is
       Display : Slim.Players.Displays.Display := Self.Get_Display;
       Seconds : constant Natural :=
         Natural (Ada.Calendar.Seconds (Self.State.Time));
@@ -134,22 +122,26 @@ package body Slim.Players.Idle_State_Visiters is
       H : Wide_Wide_String := Natural'Wide_Wide_Image (Hour);
       M : Wide_Wide_String := Natural'Wide_Wide_Image (Min);
 
-      Text    : League.Strings.Universal_String;
+      Text : League.Strings.Universal_String;
+      Box  : Slim.Fonts.Bounding_Box;
    begin
       H (1) := '0';
       M (1) := '0';
       Text.Append (H (H'Last - 1 .. H'Last));
       Text.Append (":");
       Text.Append (M (M'Last - 1 .. M'Last));
+      Box := Slim.Fonts.Size (Self.Font, Text);
 
       Slim.Players.Displays.Clear (Display);
 
       Slim.Players.Displays.Draw_Text
         (Self => Display,
-         X    => 1,
-         Y    => 6,
+         X    => 161 - Box.Right,
+         Y    => 33 - Box.Top,
          Font => Self.Font,
          Text => Text);
+
+      Self.State.Menu_View.Draw (Display);
 
       Slim.Players.Displays.Send_Message (Display);
    end Update_Display;

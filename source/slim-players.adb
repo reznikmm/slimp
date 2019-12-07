@@ -7,12 +7,18 @@
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
+with Ada.Wide_Wide_Text_IO;
 
-with Slim.Players.Displays;
+with League.IRIs;
+with League.String_Vectors;
+
+with Slim.Menu_Models.JSON;
 with Slim.Message_Decoders;
 with Slim.Message_Visiters;
+with Slim.Messages.audg;
 with Slim.Messages.strm;
 with Slim.Players.Connected_State_Visiters;
+with Slim.Players.Displays;
 with Slim.Players.Idle_State_Visiters;
 with Slim.Players.Play_State_Visiters;
 
@@ -32,6 +38,22 @@ package body Slim.Players is
 
    procedure Free is new Ada.Unchecked_Deallocation
      (Slim.Messages.Message'Class, Slim.Messages.Message_Access);
+
+   ----------------
+   -- First_Menu --
+   ----------------
+
+   function First_Menu
+     (Self : Player'Class) return Slim.Menu_Views.Menu_View
+   is
+      Ignore : Boolean;
+   begin
+      return Result : Slim.Menu_Views.Menu_View do
+         Result.Initialize
+           (Menu => Slim.Menu_Models.Menu_Model_Access (Self.Menu),
+            Font => Self.Font'Unchecked_Access);
+      end return;
+   end First_Menu;
 
    -----------------
    -- Get_Display --
@@ -54,11 +76,12 @@ package body Slim.Players is
    -- Initialize --
    ----------------
 
-   not overriding procedure Initialize
-     (Self   : in out Player;
+   procedure Initialize
+     (Self   : in out Player'Class;
       Socket : GNAT.Sockets.Socket_Type;
       Font   : League.Strings.Universal_String;
-      Splash : League.Strings.Universal_String) is
+      Splash : League.Strings.Universal_String;
+      Menu   : League.Strings.Universal_String) is
    begin
       Self.Socket := Socket;
 
@@ -69,7 +92,85 @@ package body Slim.Players is
 
       Slim.Fonts.Read (Self.Font, Font);
       Read_Splash (Self.Splash, Splash);
+
+      Self.Menu := new Slim.Menu_Models.JSON.JSON_Menu_Model;
+      Slim.Menu_Models.JSON.JSON_Menu_Model (Self.Menu.all).Initialize
+        (File => Menu);
    end Initialize;
+
+   ----------------
+   -- Play_Radio --
+   ----------------
+
+   procedure Play_Radio
+     (Self : in out Player'Class;
+      URL  : League.Strings.Universal_String)
+   is
+      use type Ada.Calendar.Time;
+      IRI : constant League.IRIs.IRI :=
+        League.IRIs.From_Universal_String (URL);
+
+      Host       : League.Strings.Universal_String := IRI.Get_Host;
+      Port       : constant Natural := IRI.Get_Port;
+      Port_Image : Wide_Wide_String := Integer'Wide_Wide_Image (Port);
+      Addr       : GNAT.Sockets.Inet_Addr_Type;
+      Strm    : Slim.Messages.strm.Strm_Message;
+      Request : League.String_Vectors.Universal_String_Vector;
+      Line    : League.Strings.Universal_String;
+   begin
+      Self.Stop;
+
+      declare
+         Host_Entry : constant GNAT.Sockets.Host_Entry_Type :=
+           GNAT.Sockets.Get_Host_By_Name (Host.To_UTF_8_String);
+      begin
+         for J in 1 .. Host_Entry.Addresses_Length loop
+            Addr := GNAT.Sockets.Addresses (Host_Entry, J);
+            exit when Addr.Family in GNAT.Sockets.Family_Inet;
+         end loop;
+      end;
+
+      if Addr.Family not in GNAT.Sockets.Family_Inet then
+         return;
+      end if;
+
+      if Port /= 0 then
+         Port_Image (1) := ':';
+         Host.Append (Port_Image);
+      end if;
+
+      Line := +"GET /";
+      Line.Append (IRI.Get_Path.Join ('/'));
+      Line.Append (" HTTP/1.0");
+      Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
+      Request.Append (Line);
+
+      Line := +"Host: ";
+      Line.Append (Host);
+      Request.Append (Line);
+
+      Request.Append (+"Icy-Metadata: 1");
+      Request.Append (+"");
+      Request.Append (+"");
+      Strm.Start
+        (Server      => (GNAT.Sockets.Family_Inet,
+                         Addr,
+                         Port => GNAT.Sockets.Port_Type (Port)),
+         Request     => Request);
+
+      Write_Message (Self.Socket, Strm);
+
+      Self.State :=
+        (Play,
+         Volume          => 30,
+         Volume_Set_Time => Ada.Calendar.Clock - 60.0,
+         Song            => League.Strings.Empty_Universal_String,
+         Paused          => False);
+
+   exception
+      when GNAT.Sockets.Host_Error =>
+         return;
+   end Play_Radio;
 
    ---------------------
    -- Process_Message --
@@ -205,6 +306,44 @@ package body Slim.Players is
       Write_Message (Self.Socket, strm);
       Self.Ping := Ada.Calendar.Clock;
    end Send_Hearbeat;
+
+   ----------
+   -- Stop --
+   ----------
+
+   procedure Stop (Self : in out Player'Class) is
+      use type Ada.Calendar.Time;
+
+      Strm   : Slim.Messages.strm.Strm_Message;
+   begin
+      if Self.State.Kind = Play then
+         Strm.Simple_Command (Slim.Messages.strm.Stop);
+         Write_Message (Self.Socket, Strm);
+         Self.State :=
+           (Idle,
+            Ada.Calendar.Clock - 60.0,
+            Self.First_Menu);
+      end if;
+   end Stop;
+
+   ------------
+   -- Volume --
+   ------------
+
+   procedure Volume
+     (Self  : in out Player'Class;
+      Value : Natural)
+   is
+      Audg   : Slim.Messages.audg.Audg_Message;
+   begin
+      if Self.State.Kind = Play then
+         Self.State.Volume := Value;
+         Self.State.Volume_Set_Time := Ada.Calendar.Clock;
+      end if;
+
+      Audg.Set_Volume (Value);
+      Write_Message (Self.Socket, Audg);
+   end Volume;
 
    -------------------
    -- Write_Message --

@@ -21,11 +21,13 @@ package Slim.Messages.strm is
      (Self    : in out Strm_Message;
       Command : Play_Command);
 
+   subtype Server_Address is
+     GNAT.Sockets.Sock_Addr_Type (GNAT.Sockets.Family_Inet);
+
    not overriding procedure Start
-     (Self        : in out Strm_Message;
-      Server_IP   : GNAT.Sockets.Inet_Addr_V4_Type;
-      Server_Port : GNAT.Sockets.Port_Type;
-      Request     : League.String_Vectors.Universal_String_Vector);
+     (Self    : in out Strm_Message;
+      Server  : Server_Address;
+      Request : League.String_Vectors.Universal_String_Vector);
 
 private
 

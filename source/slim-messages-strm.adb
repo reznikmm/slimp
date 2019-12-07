@@ -108,12 +108,15 @@ package body Slim.Messages.strm is
    -----------
 
    not overriding procedure Start
-     (Self        : in out Strm_Message;
-      Server_IP   : GNAT.Sockets.Inet_Addr_V4_Type;
-      Server_Port : GNAT.Sockets.Port_Type;
-      Request     : League.String_Vectors.Universal_String_Vector)
+     (Self    : in out Strm_Message;
+      Server  : Server_Address;
+      Request : League.String_Vectors.Universal_String_Vector)
    is
       subtype X is Interfaces.Unsigned_8;
+
+      Image : constant League.String_Vectors.Universal_String_Vector :=
+        League.Strings.From_UTF_8_String
+          (GNAT.Sockets.Image (Server.Addr)).Split ('.');
 
       CR_LF : constant Wide_Wide_String :=
         (Ada.Characters.Wide_Wide_Latin_1.CR,
@@ -134,12 +137,12 @@ package body Slim.Messages.strm is
          0,   --  Flags
          1,   --  Output Threshold, output buffer before playback starts 0.1s
          0,   --  Reserved
-         X (Server_IP (1)),
-         X (Server_IP (2)),
-         X (Server_IP (3)),
-         X (Server_IP (4)));
+         X'Wide_Wide_Value (Image (1).To_Wide_Wide_String),
+         X'Wide_Wide_Value (Image (2).To_Wide_Wide_String),
+         X'Wide_Wide_Value (Image (3).To_Wide_Wide_String),
+         X'Wide_Wide_Value (Image (4).To_Wide_Wide_String));
 
-      Self.Data_16 := (1 => Interfaces.Unsigned_16 (Server_Port)); --  Port
+      Self.Data_16 := (1 => Interfaces.Unsigned_16 (Server.Port)); --  Port
       Self.Data_32 := (1 => 0); --  replay gain
       Self.Request := Request.Join (CR_LF);
    end Start;
