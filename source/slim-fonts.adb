@@ -4,11 +4,13 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Streams;
 with Ada.Wide_Wide_Text_IO;
 with Interfaces;
 
-with League.String_Vectors;
 with League.Regexps;
+with League.String_Vectors;
+with League.Text_Codecs;
 
 package body Slim.Fonts is
 
@@ -160,7 +162,12 @@ package body Slim.Fonts is
       Input : Ada.Wide_Wide_Text_IO.File_Type;
       Char  : Wide_Wide_Character;
       Last  : Glyph_Bitmap_Access;
+
       Dev_Width : Bit_Count;
+      Code_Page : League.Strings.Universal_String;
+
+      Codec     : League.Text_Codecs.Text_Codec :=
+        League.Text_Codecs.Codec (+"utf-8");
 
       Pattern : constant League.Regexps.Regexp_Pattern :=
         League.Regexps.Compile (+"uni([0-9a-fA-F]{4})");
@@ -172,6 +179,12 @@ package body Slim.Fonts is
       BBX : constant League.Strings.Universal_String := +"BBX";
       BITMAP : constant League.Strings.Universal_String := +"BITMAP";
       ENDCHAR : constant League.Strings.Universal_String := +"ENDCHAR";
+
+      CHARSET_REGISTRY : constant League.Strings.Universal_String :=
+        +"CHARSET_REGISTRY";
+
+      CHARSET_ENCODING : constant League.Strings.Universal_String :=
+        +"CHARSET_ENCODING";
 
    begin
       Ada.Wide_Wide_Text_IO.Open
@@ -185,9 +198,19 @@ package body Slim.Fonts is
             Line : constant League.Strings.Universal_String :=
               Get_Line (Input);
          begin
+            if Line.Starts_With (CHARSET_REGISTRY) then
+               Code_Page := Line.Split ('"') (2);
+            elsif Line.Starts_With (CHARSET_ENCODING) then
+               Code_Page.Append (Line.Split ('"') (2));
+            end if;
+
             exit when Line.Starts_With ("CHARS ");
          end;
       end loop;
+
+      if not Code_Page.Is_Empty then
+         Codec := League.Text_Codecs.Codec (Code_Page);
+      end if;
 
       --  Read Glyphs
       while not Ada.Wide_Wide_Text_IO.End_Of_File (Input) loop
@@ -216,9 +239,14 @@ package body Slim.Fonts is
 
             elsif First = ENCODING then
                if Char = ' ' then
-                  Char := Wide_Wide_Character'Val
-                    (Integer'Wide_Wide_Value
-                       (Fields.Element (2).To_Wide_Wide_String));
+                  declare
+                     X : constant Ada.Streams.Stream_Element_Array (1 .. 1) :=
+                       (1 => Ada.Streams.Stream_Element'Wide_Wide_Value
+                          (Fields.Element (2).To_Wide_Wide_String));
+                  begin
+                     Char := Codec.Decode (X)
+                       .Element (1).To_Wide_Wide_Character;
+                  end;
                end if;
 
             elsif First = BBX then

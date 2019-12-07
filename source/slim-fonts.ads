@@ -11,6 +11,7 @@ with League.Strings;
 package Slim.Fonts is
 
    type Font is limited private;
+   type Font_Access is access constant Font;
 
    procedure Read
      (Self : in out Font;
