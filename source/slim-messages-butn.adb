@@ -20,14 +20,16 @@ package body Slim.Messages.BUTN is
    begin
       if Self.Data_8 (1 .. 3) = (0, 1, 0) then
          case Self.Data_8 (4) is
-            when 16#23# =>
-               return Preset_1;
-            when 16#5A# =>
-               return Knob_Left;
             when 16#5B# =>
                return Knob_Right;
+            when 16#5A# =>
+               return Knob_Left;
+            when 16#23# =>
+               return Preset_1;
             when 16#17# =>
                return Pause;
+            when 16#0E# =>
+               return Knob_Push;
             when 16#0D# =>
                return Back;
             when others =>
