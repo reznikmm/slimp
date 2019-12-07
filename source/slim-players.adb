@@ -93,7 +93,9 @@ package body Slim.Players is
       Slim.Fonts.Read (Self.Font, Font);
       Read_Splash (Self.Splash, Splash);
 
-      Self.Menu := new Slim.Menu_Models.JSON.JSON_Menu_Model;
+      Self.Menu :=
+        new Slim.Menu_Models.JSON.JSON_Menu_Model (Self'Unchecked_Access);
+
       Slim.Menu_Models.JSON.JSON_Menu_Model (Self.Menu.all).Initialize
         (File => Menu);
    end Initialize;

@@ -8,12 +8,36 @@ with League.JSON.Arrays;
 with League.JSON.Documents;
 with League.JSON.Values;
 with Ada.Streams.Stream_IO;
+with Slim.Menu_Commands.Play_Radio_Commands;
 
 package body Slim.Menu_Models.JSON is
 
    function Read_File
      (File   : League.Strings.Universal_String)
       return League.JSON.Documents.JSON_Document;
+
+   -------------------
+   -- Enter_Command --
+   -------------------
+
+   overriding function Enter_Command
+     (Self : JSON_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+   is
+      Item : League.JSON.Objects.JSON_Object := Self.Root;
+   begin
+      for J of Path.List loop
+         Item := Item.Value (Self.Nested).To_Array.Element (J).To_Object;
+      end loop;
+
+      if Item.Contains (Self.URL) then
+         return new Slim.Menu_Commands.Play_Radio_Commands.Play_Radio_Command'
+           (Player => Self.Player,
+            URL    => Item.Value (Self.URL).To_String);
+      else
+         return null;
+      end if;
+   end Enter_Command;
 
    ----------------
    -- Initialize --
@@ -29,6 +53,7 @@ package body Slim.Menu_Models.JSON is
       Self.Root := Document.To_JSON_Object;
       Self.Nested := League.Strings.To_Universal_String ("nested");
       Self.Label := League.Strings.To_Universal_String ("label");
+      Self.URL := League.Strings.To_Universal_String ("url");
    end Initialize;
 
    ----------------
@@ -66,6 +91,10 @@ package body Slim.Menu_Models.JSON is
 
       return Item.Value (Self.Label).To_String;
    end Label;
+
+   ---------------
+   -- Read_File --
+   ---------------
 
    function Read_File
      (File   : League.Strings.Universal_String)

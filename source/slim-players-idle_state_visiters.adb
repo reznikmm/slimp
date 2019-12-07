@@ -39,7 +39,10 @@ package body Slim.Players.Idle_State_Visiters is
 
          when Slim.Messages.BUTN.Knob_Push =>
             Player.State.Menu_View.Enter;
-            Update_Display (Player);
+
+            if Player.State.Kind = Idle then
+               Update_Display (Player);
+            end if;
 
          when Slim.Messages.BUTN.Preset_1 =>
             Player.Play_Radio (+"http://files.yogaradio.fm:8000/YOGAr256");

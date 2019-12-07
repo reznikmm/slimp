@@ -21,6 +21,8 @@ package Slim.Players is
 
    type Player is tagged limited private;
 
+   type Player_Access is access all Player'Class;
+
    procedure Initialize
      (Self   : in out Player'Class;
       Socket : GNAT.Sockets.Socket_Type;

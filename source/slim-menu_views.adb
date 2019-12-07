@@ -4,8 +4,11 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Unchecked_Deallocation;
+
 with League.Strings;
 
+with Slim.Menu_Commands;
 with Slim.Players.Displays;
 
 package body Slim.Menu_Views is
@@ -61,9 +64,16 @@ package body Slim.Menu_Views is
    -----------
 
    procedure Enter (Self : in out Menu_View'Class) is
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Slim.Menu_Commands.Menu_Command'Class,
+         Slim.Menu_Commands.Menu_Command_Access);
+
+      Command : Slim.Menu_Commands.Menu_Command_Access;
    begin
-      if Self.Menu.Child (Self.Current_Menu) then
-         null;
+      if not Self.Menu.Child (Self.Current_Menu) then
+         Command := Self.Menu.Enter_Command (Self.Current_Menu);
+         Command.Run;
+         Free (Command);
       end if;
    end Enter;
 

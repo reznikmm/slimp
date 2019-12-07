@@ -5,6 +5,7 @@
 -------------------------------------------------------------
 
 with League.Strings;
+with Slim.Menu_Commands;
 
 package Slim.Menu_Models is
 
@@ -44,6 +45,11 @@ package Slim.Menu_Models is
    not overriding function Item_Count
      (Self : Menu_Model;
       Path : Menu_Path) return Natural is abstract;
+
+   not overriding function Enter_Command
+     (Self : Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+        is abstract;
 
 private
 
