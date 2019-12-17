@@ -7,11 +7,12 @@
 with League.Strings;
 with League.JSON.Objects;
 with Slim.Players;
+with Slim.Menu_Models.Files;
 
 package Slim.Menu_Models.JSON is
 
    type JSON_Menu_Model (Player : Slim.Players.Player_Access) is
-     new Slim.Menu_Models.Menu_Model with private;
+     limited new Slim.Menu_Models.Menu_Model with private;
 
    procedure Initialize
      (Self : in out JSON_Menu_Model'Class;
@@ -20,12 +21,16 @@ package Slim.Menu_Models.JSON is
 private
 
    type JSON_Menu_Model (Player : Slim.Players.Player_Access) is
-     new Slim.Menu_Models.Menu_Model with
+     limited new Slim.Menu_Models.Menu_Model with
    record
       Root   : League.JSON.Objects.JSON_Object;
       Nested : League.Strings.Universal_String;
       Label  : League.Strings.Universal_String;
       URL    : League.Strings.Universal_String;
+      Path   : League.Strings.Universal_String;
+
+      File_Path : Menu_Path;
+      File_Menu : Slim.Menu_Models.Files.File_Menu_Model (Player);
    end record;
 
    overriding function Label

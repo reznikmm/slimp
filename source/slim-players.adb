@@ -4,6 +4,7 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
@@ -100,6 +101,50 @@ package body Slim.Players is
         (File => Menu);
    end Initialize;
 
+   ---------------
+   -- Play_File --
+   ---------------
+
+   procedure Play_File
+     (Self : in out Player'Class;
+      Path : League.Strings.Universal_String)
+   is
+      use type Ada.Calendar.Time;
+
+      Strm    : Slim.Messages.strm.Strm_Message;
+      Request : League.String_Vectors.Universal_String_Vector;
+      Line    : League.Strings.Universal_String;
+   begin
+      Line.Append ("GET /Music/");
+      Line.Append (Path);
+      Line.Append (" HTTP/1.0");
+      Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
+      Request.Append (Line);
+      Request.Append (+"");
+      Request.Append (+"");
+
+      Strm.Start
+        (Server      => (GNAT.Sockets.Family_Inet,
+                         GNAT.Sockets.Inet_Addr ("0.0.0.0"),
+                         Port => 8080),
+         Request     => Request);
+
+      Write_Message (Self.Socket, Strm);
+
+      Self.State :=
+        (Play,
+         Volume          => 30,
+         Volume_Set_Time => Ada.Calendar.Clock - 60.0,
+         Song            => League.Strings.From_UTF_8_String
+           (Ada.Directories.Base_Name (Path.To_UTF_8_String)),
+         Paused          => False,
+         Is_Radio        => False);
+
+   exception
+      when GNAT.Sockets.Host_Error =>
+         return;
+   end Play_File;
+
    ----------------
    -- Play_Radio --
    ----------------
@@ -167,7 +212,8 @@ package body Slim.Players is
          Volume          => 30,
          Volume_Set_Time => Ada.Calendar.Clock - 60.0,
          Song            => League.Strings.Empty_Universal_String,
-         Paused          => False);
+         Paused          => False,
+         Is_Radio        => True);
 
    exception
       when GNAT.Sockets.Host_Error =>

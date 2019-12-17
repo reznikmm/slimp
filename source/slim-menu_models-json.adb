@@ -26,6 +26,10 @@ package body Slim.Menu_Models.JSON is
    is
       Item : League.JSON.Objects.JSON_Object := Self.Root;
    begin
+      if Starts_With (Path, Self.File_Path) then
+         return Self.File_Menu.Enter_Command (Suffix (Path, Self.File_Path));
+      end if;
+
       for J of Path.List loop
          Item := Item.Value (Self.Nested).To_Array.Element (J).To_Object;
       end loop;
@@ -47,6 +51,36 @@ package body Slim.Menu_Models.JSON is
      (Self : in out JSON_Menu_Model'Class;
       File : League.Strings.Universal_String)
    is
+      procedure Find_File_Menu
+        (Path   : Menu_Path;
+         Object : League.JSON.Objects.JSON_Object);
+
+      --------------------
+      -- Find_File_Menu --
+      --------------------
+
+      procedure Find_File_Menu
+        (Path   : Menu_Path;
+         Object : League.JSON.Objects.JSON_Object) is
+      begin
+         if Object.Contains (Self.Path) then
+            Self.File_Path := Path;
+            Self.File_Menu.Initialize
+              (Object.Value (Self.Path).To_String);
+         elsif Object.Contains (Self.Nested) then
+            declare
+               List : constant League.JSON.Arrays.JSON_Array :=
+                 Object.Value (Self.Nested).To_Array;
+               Next :  Menu_Path := (Path.Length + 1, Path.List & 1);
+            begin
+               for J in 1 .. List.Length loop
+                  Next.List (Next.Length) := J;
+                  Find_File_Menu (Next, List.Element (J).To_Object);
+               end loop;
+            end;
+         end if;
+      end Find_File_Menu;
+
       Document : constant League.JSON.Documents.JSON_Document :=
         Read_File (File);
    begin
@@ -54,6 +88,8 @@ package body Slim.Menu_Models.JSON is
       Self.Nested := League.Strings.To_Universal_String ("nested");
       Self.Label := League.Strings.To_Universal_String ("label");
       Self.URL := League.Strings.To_Universal_String ("url");
+      Self.Path := League.Strings.To_Universal_String ("path");
+      Find_File_Menu (Menu_Models.Root (Self), Self.Root);
    end Initialize;
 
    ----------------
@@ -68,6 +104,10 @@ package body Slim.Menu_Models.JSON is
       Item : League.JSON.Arrays.JSON_Array :=
         Self.Root.Value (Self.Nested).To_Array;
    begin
+      if Starts_With (Path, Self.File_Path) then
+         return Self.File_Menu.Item_Count (Suffix (Path, Self.File_Path));
+      end if;
+
       for J of Path.List loop
          Item := Item.Element (J).To_Object.Value (Self.Nested).To_Array;
       end loop;
@@ -85,6 +125,12 @@ package body Slim.Menu_Models.JSON is
    is
       Item : League.JSON.Objects.JSON_Object := Self.Root;
    begin
+      if Starts_With (Path, Self.File_Path)
+        and then Path.Length > Self.File_Path.Length
+      then
+         return Self.File_Menu.Label (Suffix (Path, Self.File_Path));
+      end if;
+
       for J of Path.List loop
          Item := Item.Value (Self.Nested).To_Array.Element (J).To_Object;
       end loop;

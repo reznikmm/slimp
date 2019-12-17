@@ -61,4 +61,14 @@ private
       List : Menu_Index_Array (1 .. Length);
    end record;
 
+   function Starts_With
+     (Self   : Menu_Path;
+      Prefix : Menu_Path) return Boolean
+     with Inline;
+
+   function Suffix
+     (Self   : Menu_Path;
+      Prefix : Menu_Path) return Menu_Path
+     with Inline;
+
 end Slim.Menu_Models;

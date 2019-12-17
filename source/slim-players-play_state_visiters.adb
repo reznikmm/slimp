@@ -74,8 +74,10 @@ package body Slim.Players.Play_State_Visiters is
 
       Player : Players.Player renames Self.Player.all;
    begin
-      --  got disconnection on the data channel
-      Player.State := (Idle, Ada.Calendar.Clock - 60.0, Player.First_Menu);
+      if Player.State.Is_Radio then
+         --  got disconnection on the data channel
+         Player.State := (Idle, Ada.Calendar.Clock - 60.0, Player.First_Menu);
+      end if;
    end DSCO;
 
    ----------
@@ -136,10 +138,10 @@ package body Slim.Players.Play_State_Visiters is
          end if;
       end loop;
 
-      if Metaint /= 0 then
+--      if Metaint /= 0 then
          Cont.Set_Metaint (Metaint);
          Write_Message (Player.Socket, Cont);
-      end if;
+--      end if;
    end RESP;
 
    ----------
@@ -156,6 +158,8 @@ package body Slim.Players.Play_State_Visiters is
 
       if Message.Event (1 .. 3) /= "STM" then
          return;
+      elsif not Player.State.Song.Is_Empty then
+         null;
       elsif Message.Event = "STMc" then
          Player.State.Song.Clear;
          Player.State.Song.Append ("Connecting...");

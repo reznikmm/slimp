@@ -34,6 +34,10 @@ package Slim.Players is
      (Self : in out Player'Class;
       URL  : League.Strings.Universal_String);
 
+   procedure Play_File
+     (Self : in out Player'Class;
+      Path : League.Strings.Universal_String);
+
    procedure Stop (Self : in out Player'Class);
 
    procedure Volume
@@ -58,6 +62,7 @@ private
             Volume_Set_Time : Ada.Calendar.Time;
             Song            : League.Strings.Universal_String;
             Paused          : Boolean;
+            Is_Radio        : Boolean;
       end case;
    end record;
 

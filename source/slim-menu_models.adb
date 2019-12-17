@@ -83,4 +83,28 @@ package body Slim.Menu_Models is
       return (Length => 0, List => <>);
    end Root;
 
+   -----------------
+   -- Starts_With --
+   -----------------
+
+   function Starts_With
+     (Self   : Menu_Path;
+      Prefix : Menu_Path) return Boolean is
+   begin
+      return Prefix.Length <= Self.Length
+        and then Prefix.List = Self.List (1 .. Prefix.Length);
+   end Starts_With;
+
+   ------------
+   -- Suffix --
+   ------------
+
+   function Suffix
+     (Self   : Menu_Path;
+      Prefix : Menu_Path) return Menu_Path is
+   begin
+      return (Self.Length - Prefix.Length,
+              Self.List (Prefix.Length + 1 .. Self.Length));
+   end Suffix;
+
 end Slim.Menu_Models;

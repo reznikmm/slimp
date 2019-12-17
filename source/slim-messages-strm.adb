@@ -108,11 +108,14 @@ package body Slim.Messages.strm is
    -----------
 
    not overriding procedure Start
-     (Self    : in out Strm_Message;
-      Server  : Server_Address;
-      Request : League.String_Vectors.Universal_String_Vector)
+     (Self      : in out Strm_Message;
+      Server    : Server_Address;
+      Request   : League.String_Vectors.Universal_String_Vector;
+      Auto_Play : Boolean := True)
    is
       subtype X is Interfaces.Unsigned_8;
+
+      Auto_Start : Character := '2';  --  direct streaming
 
       Image : constant League.String_Vectors.Universal_String_Vector :=
         League.Strings.From_UTF_8_String
@@ -122,9 +125,13 @@ package body Slim.Messages.strm is
         (Ada.Characters.Wide_Wide_Latin_1.CR,
          Ada.Characters.Wide_Wide_Latin_1.LF);
    begin
+      if Auto_Play then
+         Auto_Start := '3';  --  direct+auto
+      end if;
+
       Self.Data_8 :=
         (Character'Pos ('s'),
-         Character'Pos ('3'),   --  Auto_Start = direct+auto
+         Character'Pos (Auto_Start),   --  Auto_Start
          Character'Pos ('m'),   --  Format MP3
          Character'Pos ('?'),   --  PCM_Sample_Size
          Character'Pos ('?'),   --  PCM_Sample_Rate

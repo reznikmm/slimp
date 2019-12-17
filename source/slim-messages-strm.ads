@@ -25,9 +25,10 @@ package Slim.Messages.strm is
      GNAT.Sockets.Sock_Addr_Type (GNAT.Sockets.Family_Inet);
 
    not overriding procedure Start
-     (Self    : in out Strm_Message;
-      Server  : Server_Address;
-      Request : League.String_Vectors.Universal_String_Vector);
+     (Self      : in out Strm_Message;
+      Server    : Server_Address;
+      Request   : League.String_Vectors.Universal_String_Vector;
+      Auto_Play : Boolean := True);
 
 private
 

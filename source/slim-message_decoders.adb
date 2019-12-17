@@ -8,6 +8,7 @@ with Ada.Tags.Generic_Dispatching_Constructor;
 
 with Slim.Messages.ANIC;
 with Slim.Messages.BUTN;
+with Slim.Messages.DSCO;
 with Slim.Messages.HELO;
 with Slim.Messages.IR;
 with Slim.Messages.META;
@@ -40,6 +41,7 @@ package body Slim.Message_Decoders is
    Map : constant array (Positive range <>) of Map_Item :=
      (("ANIC", Slim.Messages.ANIC.ANIC_Message'Tag),
       ("BUTN", Slim.Messages.BUTN.BUTN_Message'Tag),
+      ("DSCO", Slim.Messages.DSCO.DSCO_Message'Tag),
       ("HELO", Slim.Messages.HELO.HELO_Message'Tag),
       ("IR  ", Slim.Messages.IR.IR_Message'Tag),
       ("META", Slim.Messages.META.META_Message'Tag),
