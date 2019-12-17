@@ -29,15 +29,22 @@ package body Slim.Menu_Models.Files is
      (Self : File_Menu_Model;
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
    is
+      use Slim.Menu_Commands.Play_File_Commands;
+
+      Result : Play_File_Command_Access;
       File   : constant League.Strings.Universal_String :=
         Self.Path_To_String (Path);
    begin
       if Ada.Directories.Kind (File.To_UTF_8_String) in
         Ada.Directories.Ordinary_File
       then
-         return new Slim.Menu_Commands.Play_File_Commands.Play_File_Command'
-           (Player        => Self.Player,
-            Relative_Path => File.Tail_From (Self.Root.Length + 1));
+         Result := new Play_File_Command (Self.Player);
+         Result.Relative_Path_List.Append
+           (File.Tail_From (Self.Root.Length + 1));
+         Result.Title_List.Append
+           (File.Tail_From (File.Last_Index ('/') + 1));
+
+         return Slim.Menu_Commands.Menu_Command_Access (Result);
       else
          return null;
       end if;

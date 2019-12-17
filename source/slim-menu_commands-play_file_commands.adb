@@ -11,8 +11,13 @@ package body Slim.Menu_Commands.Play_File_Commands is
    ---------
 
    overriding procedure Run (Self : Play_File_Command) is
+      Value : Slim.Players.Song_Array (1 .. Self.Title_List.Length);
    begin
-      Self.Player.Play_File (Self.Relative_Path);
+      for J in Value'Range loop
+         Value (J) := (Self.Relative_Path_List (J), Self.Title_List (J));
+      end loop;
+
+      Self.Player.Play_Files (Value);
    end Run;
 
 end Slim.Menu_Commands.Play_File_Commands;

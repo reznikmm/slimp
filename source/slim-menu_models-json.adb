@@ -24,23 +24,38 @@ package body Slim.Menu_Models.JSON is
      (Self : JSON_Menu_Model;
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
    is
-      Item : League.JSON.Objects.JSON_Object := Self.Root;
+      String : League.Strings.Universal_String;
+      Object : League.JSON.Objects.JSON_Object;
+      Item   : League.JSON.Arrays.JSON_Array :=
+        Self.Root.Value (Self.Nested).To_Array;
    begin
-      if Starts_With (Path, Self.File_Path) then
+      if Self.File_Path.Length > 0
+        and then Starts_With (Path, Self.File_Path)
+        and then Path.Length > Self.File_Path.Length
+      then
          return Self.File_Menu.Enter_Command (Suffix (Path, Self.File_Path));
       end if;
 
-      for J of Path.List loop
-         Item := Item.Value (Self.Nested).To_Array.Element (J).To_Object;
+      for J in 1 .. Path.Length loop
+         Object := Item.Element (Path.List (J)).To_Object;
+
+         if Object.Contains (Self.Playlist) then
+            String := Object.Value (Self.Playlist).To_String;
+
+            return Self.Playlists (String).all.Enter_Command
+              ((Length => Path.Length - J,
+                List   => Path.List (J + 1 .. Path.Length)));
+         elsif J = Path.Length then
+            return
+              new Slim.Menu_Commands.Play_Radio_Commands.Play_Radio_Command'
+                (Player => Self.Player,
+                 URL    => Object.Value (Self.URL).To_String);
+         else
+            Item := Object.Value (Self.Nested).To_Array;
+         end if;
       end loop;
 
-      if Item.Contains (Self.URL) then
-         return new Slim.Menu_Commands.Play_Radio_Commands.Play_Radio_Command'
-           (Player => Self.Player,
-            URL    => Item.Value (Self.URL).To_String);
-      else
-         return null;
-      end if;
+      return null;
    end Enter_Command;
 
    ----------------
@@ -63,7 +78,25 @@ package body Slim.Menu_Models.JSON is
         (Path   : Menu_Path;
          Object : League.JSON.Objects.JSON_Object) is
       begin
-         if Object.Contains (Self.Path) then
+         if Object.Contains (Self.Playlist) then
+            declare
+               Root : constant League.Strings.Universal_String :=
+                 Object.Value (Self.Path).To_String;
+
+               Label : constant League.Strings.Universal_String :=
+                 Object.Value (Self.Label).To_String;
+
+               Value : constant League.Strings.Universal_String :=
+                 Object.Value (Self.Playlist).To_String;
+
+               Next : constant Play_List_Access := new
+                 Slim.Menu_Models.Play_Lists.Play_List_Menu_Model
+                   (Self.Player);
+            begin
+               Next.Initialize (Label => Label, Root => Root, File => Value);
+               Self.Playlists.Insert (Value, Next);
+            end;
+         elsif Object.Contains (Self.Path) then
             Self.File_Path := Path;
             Self.File_Menu.Initialize
               (Object.Value (Self.Path).To_String);
@@ -89,6 +122,7 @@ package body Slim.Menu_Models.JSON is
       Self.Label := League.Strings.To_Universal_String ("label");
       Self.URL := League.Strings.To_Universal_String ("url");
       Self.Path := League.Strings.To_Universal_String ("path");
+      Self.Playlist := League.Strings.To_Universal_String ("playlist");
       Find_File_Menu (Menu_Models.Root (Self), Self.Root);
    end Initialize;
 
@@ -101,15 +135,32 @@ package body Slim.Menu_Models.JSON is
       Path : Slim.Menu_Models.Menu_Path)
       return Natural
    is
-      Item : League.JSON.Arrays.JSON_Array :=
+      String : League.Strings.Universal_String;
+      Object : League.JSON.Objects.JSON_Object;
+      Item   : League.JSON.Arrays.JSON_Array :=
         Self.Root.Value (Self.Nested).To_Array;
+      Result : Natural;
    begin
-      if Starts_With (Path, Self.File_Path) then
+      if Self.File_Path.Length > 0
+        and then Starts_With (Path, Self.File_Path)
+      then
          return Self.File_Menu.Item_Count (Suffix (Path, Self.File_Path));
       end if;
 
-      for J of Path.List loop
-         Item := Item.Element (J).To_Object.Value (Self.Nested).To_Array;
+      for J in 1 .. Path.Length loop
+         Object := Item.Element (Path.List (J)).To_Object;
+
+         if Object.Contains (Self.Playlist) then
+            String := Object.Value (Self.Playlist).To_String;
+
+            Result := Self.Playlists (String).all.Item_Count
+              ((Length => Path.Length - J,
+                List   => Path.List (J + 1 .. Path.Length)));
+
+            return Result;
+         else
+            Item := Object.Value (Self.Nested).To_Array;
+         end if;
       end loop;
 
       return Item.Length;
@@ -123,19 +174,39 @@ package body Slim.Menu_Models.JSON is
      (Self : JSON_Menu_Model; Path : Slim.Menu_Models.Menu_Path)
       return League.Strings.Universal_String
    is
-      Item : League.JSON.Objects.JSON_Object := Self.Root;
+      String : League.Strings.Universal_String;
+      Object : League.JSON.Objects.JSON_Object;
+      Item   : League.JSON.Arrays.JSON_Array :=
+        Self.Root.Value (Self.Nested).To_Array;
    begin
-      if Starts_With (Path, Self.File_Path)
+      if Self.File_Path.Length > 0
+        and then Starts_With (Path, Self.File_Path)
         and then Path.Length > Self.File_Path.Length
       then
          return Self.File_Menu.Label (Suffix (Path, Self.File_Path));
       end if;
 
-      for J of Path.List loop
-         Item := Item.Value (Self.Nested).To_Array.Element (J).To_Object;
+      for J in 1 .. Path.Length loop
+         Object := Item.Element (Path.List (J)).To_Object;
+
+         if Object.Contains (Self.Playlist) then
+            String := Object.Value (Self.Playlist).To_String;
+
+            String := Self.Playlists (String).all.Label
+              ((Length => Path.Length - J,
+                List   => Path.List (J + 1 .. Path.Length)));
+
+            return String;
+         elsif J = Path.Length then
+            String := Object.Value (Self.Label).To_String;
+
+            return String;
+         else
+            Item := Object.Value (Self.Nested).To_Array;
+         end if;
       end loop;
 
-      return Item.Value (Self.Label).To_String;
+      return String;
    end Label;
 
    ---------------

@@ -4,23 +4,18 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
-with Slim.Message_Visiters;
-
-with Slim.Messages.BUTN;
 with Slim.Messages.DSCO;
 with Slim.Messages.META;
 with Slim.Messages.RESP;
 
 with Slim.Messages.STAT;
 
-package Slim.Players.Play_State_Visiters is
+with Slim.Players.Common_Play_Visiters;
+
+package Slim.Players.Play_Radio_Visiters is
 
    type Visiter (Player : not null access Players.Player) is
-     new Slim.Message_Visiters.Visiter with null record;
-
-   overriding procedure BUTN
-     (Self    : in out Visiter;
-      Message : not null access Slim.Messages.BUTN.BUTN_Message);
+     new Slim.Players.Common_Play_Visiters.Visiter (Player) with null record;
 
    overriding procedure DSCO
      (Self    : in out Visiter;
@@ -38,4 +33,4 @@ package Slim.Players.Play_State_Visiters is
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.STAT.STAT_Message);
 
-end Slim.Players.Play_State_Visiters;
+end Slim.Players.Play_Radio_Visiters;

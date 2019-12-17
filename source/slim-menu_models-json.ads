@@ -4,10 +4,13 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
-with League.Strings;
+with Ada.Containers.Hashed_Maps;
+
+with League.Strings.Hash;
 with League.JSON.Objects;
 with Slim.Players;
 with Slim.Menu_Models.Files;
+with Slim.Menu_Models.Play_Lists;
 
 package Slim.Menu_Models.JSON is
 
@@ -20,16 +23,27 @@ package Slim.Menu_Models.JSON is
 
 private
 
+   type Play_List_Access is access all
+     Slim.Menu_Models.Play_Lists.Play_List_Menu_Model;
+
+   package Playlist_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => League.Strings.Universal_String,
+      Element_Type    => Play_List_Access,
+      Hash            => League.Strings.Hash,
+      Equivalent_Keys => League.Strings."=");
+
    type JSON_Menu_Model (Player : Slim.Players.Player_Access) is
      limited new Slim.Menu_Models.Menu_Model with
    record
-      Root   : League.JSON.Objects.JSON_Object;
-      Nested : League.Strings.Universal_String;
-      Label  : League.Strings.Universal_String;
-      URL    : League.Strings.Universal_String;
-      Path   : League.Strings.Universal_String;
+      Root     : League.JSON.Objects.JSON_Object;
+      Nested   : League.Strings.Universal_String;
+      Label    : League.Strings.Universal_String;
+      URL      : League.Strings.Universal_String;
+      Path     : League.Strings.Universal_String;
+      Playlist : League.Strings.Universal_String;
 
       File_Path : Menu_Path;
+      Playlists : Playlist_Maps.Map;
       File_Menu : Slim.Menu_Models.Files.File_Menu_Model (Player);
    end record;
 

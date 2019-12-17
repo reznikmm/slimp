@@ -4,14 +4,12 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
-with Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 with Ada.Wide_Wide_Text_IO;
 
 with League.IRIs;
-with League.String_Vectors;
 
 with Slim.Menu_Models.JSON;
 with Slim.Message_Decoders;
@@ -21,7 +19,9 @@ with Slim.Messages.strm;
 with Slim.Players.Connected_State_Visiters;
 with Slim.Players.Displays;
 with Slim.Players.Idle_State_Visiters;
-with Slim.Players.Play_State_Visiters;
+with Slim.Players.Play_Radio_Visiters;
+with Slim.Players.Play_Files_Visiters;
+with League.String_Vectors;
 
 package body Slim.Players is
 
@@ -101,49 +101,32 @@ package body Slim.Players is
         (File => Menu);
    end Initialize;
 
-   ---------------
-   -- Play_File --
-   ---------------
+   ----------------
+   -- Play_Files --
+   ----------------
 
-   procedure Play_File
+   procedure Play_Files
      (Self : in out Player'Class;
-      Path : League.Strings.Universal_String)
+      List : Song_Array)
    is
       use type Ada.Calendar.Time;
 
-      Strm    : Slim.Messages.strm.Strm_Message;
-      Request : League.String_Vectors.Universal_String_Vector;
-      Line    : League.Strings.Universal_String;
+      Playlist : Song_Vectors.Vector;
    begin
-      Line.Append ("GET /Music/");
-      Line.Append (Path);
-      Line.Append (" HTTP/1.0");
-      Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
-      Request.Append (Line);
-      Request.Append (+"");
-      Request.Append (+"");
-
-      Strm.Start
-        (Server      => (GNAT.Sockets.Family_Inet,
-                         GNAT.Sockets.Inet_Addr ("0.0.0.0"),
-                         Port => 8080),
-         Request     => Request);
-
-      Write_Message (Self.Socket, Strm);
+      for X of List loop
+         Playlist.Append (X);
+      end loop;
 
       Self.State :=
-        (Play,
-         Volume          => 30,
-         Volume_Set_Time => Ada.Calendar.Clock - 60.0,
-         Song            => League.Strings.From_UTF_8_String
-           (Ada.Directories.Base_Name (Path.To_UTF_8_String)),
-         Paused          => False,
-         Is_Radio        => False);
+        (Play_Files,
+         (Volume          => 30,
+          Volume_Set_Time => Ada.Calendar.Clock - 60.0,
+          Current_Song    => List (1).Title,
+          Paused          => False),
+         Playlist, 1);
 
-   exception
-      when GNAT.Sockets.Host_Error =>
-         return;
-   end Play_File;
+      Self.Request_Next_File;
+   end Play_Files;
 
    ----------------
    -- Play_Radio --
@@ -208,12 +191,11 @@ package body Slim.Players is
       Write_Message (Self.Socket, Strm);
 
       Self.State :=
-        (Play,
-         Volume          => 30,
-         Volume_Set_Time => Ada.Calendar.Clock - 60.0,
-         Song            => League.Strings.Empty_Universal_String,
-         Paused          => False,
-         Is_Radio        => True);
+        (Play_Radio,
+         (Volume          => 30,
+          Volume_Set_Time => Ada.Calendar.Clock - 60.0,
+          Current_Song    => League.Strings.Empty_Universal_String,
+          Paused          => False));
 
    exception
       when GNAT.Sockets.Host_Error =>
@@ -238,8 +220,11 @@ package body Slim.Players is
             when Idle =>
                return V : Idle_State_Visiters.Visiter
                  (Self'Unchecked_Access);
-            when Play =>
-               return V : Play_State_Visiters.Visiter
+            when Play_Radio =>
+               return V : Play_Radio_Visiters.Visiter
+                 (Self'Unchecked_Access);
+            when Play_Files =>
+               return V : Play_Files_Visiters.Visiter
                  (Self'Unchecked_Access);
          end case;
       end Get_Visiter;
@@ -342,6 +327,36 @@ package body Slim.Players is
       Splash.Append (Data);
    end Read_Splash;
 
+   -----------------------
+   -- Request_Next_File --
+   -----------------------
+
+   procedure Request_Next_File (Self : in out Player'Class) is
+      Item    : constant Song := Self.State.Playlist (Self.State.Index);
+      File    : constant League.Strings.Universal_String := Item.File;
+      Strm    : Slim.Messages.strm.Strm_Message;
+      Request : League.String_Vectors.Universal_String_Vector;
+      Line    : League.Strings.Universal_String;
+   begin
+      Line.Append ("GET /Music/");
+      Line.Append (File);
+      Line.Append (" HTTP/1.0");
+      Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
+      Request.Append (Line);
+      Request.Append (+"");
+      Request.Append (+"");
+
+      Strm.Start
+        (Server      => (GNAT.Sockets.Family_Inet,
+                         GNAT.Sockets.Inet_Addr ("0.0.0.0"),
+                         Port => 8080),
+         Request     => Request);
+
+      Write_Message (Self.Socket, Strm);
+
+      Self.State.Play_State.Current_Song := Item.Title;
+   end Request_Next_File;
+
    -------------------
    -- Send_Hearbeat --
    -------------------
@@ -364,7 +379,7 @@ package body Slim.Players is
 
       Strm   : Slim.Messages.strm.Strm_Message;
    begin
-      if Self.State.Kind = Play then
+      if Self.State.Kind = Play_Radio then
          Strm.Simple_Command (Slim.Messages.strm.Stop);
          Write_Message (Self.Socket, Strm);
          Self.State :=
@@ -384,9 +399,9 @@ package body Slim.Players is
    is
       Audg   : Slim.Messages.audg.Audg_Message;
    begin
-      if Self.State.Kind = Play then
-         Self.State.Volume := Value;
-         Self.State.Volume_Set_Time := Ada.Calendar.Clock;
+      if Self.State.Kind in Play_Radio | Play_Files then
+         Self.State.Play_State.Volume := Value;
+         Self.State.Play_State.Volume_Set_Time := Ada.Calendar.Clock;
       end if;
 
       Audg.Set_Volume (Value);

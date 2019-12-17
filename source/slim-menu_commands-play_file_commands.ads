@@ -5,15 +5,18 @@
 -------------------------------------------------------------
 
 with Slim.Players;
-with League.Strings;
+with League.String_Vectors;
 
 package Slim.Menu_Commands.Play_File_Commands is
 
    type Play_File_Command
      (Player : Slim.Players.Player_Access) is new Menu_Command with
    record
-      Relative_Path : League.Strings.Universal_String;
+      Relative_Path_List : League.String_Vectors.Universal_String_Vector;
+      Title_List         : League.String_Vectors.Universal_String_Vector;
    end record;
+
+   type Play_File_Command_Access is access all Play_File_Command'Class;
 
    overriding procedure Run (Self : Play_File_Command);
 

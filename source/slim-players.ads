@@ -5,6 +5,8 @@
 -------------------------------------------------------------
 
 with Ada.Calendar;
+with Ada.Containers.Vectors;
+
 with GNAT.Sockets;
 
 with League.Stream_Element_Vectors;
@@ -34,9 +36,16 @@ package Slim.Players is
      (Self : in out Player'Class;
       URL  : League.Strings.Universal_String);
 
-   procedure Play_File
+   type Song is record
+      File  : League.Strings.Universal_String;
+      Title : League.Strings.Universal_String;
+   end record;
+
+   type Song_Array is array (Positive range <>) of Song;
+
+   procedure Play_Files
      (Self : in out Player'Class;
-      Path : League.Strings.Universal_String);
+      List : Song_Array);
 
    procedure Stop (Self : in out Player'Class);
 
@@ -48,7 +57,18 @@ package Slim.Players is
 
 private
 
-   type State_Kind is (Connected, Idle, Play);
+   type State_Kind is (Connected, Idle, Play_Radio, Play_Files);
+
+   type Play_State is record
+      Volume          : Natural range 0 .. 100;
+      Volume_Set_Time : Ada.Calendar.Time;
+      Current_Song    : League.Strings.Universal_String;
+      Paused          : Boolean;
+   end record;
+
+   package Song_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Song);
 
    type Player_State (Kind : State_Kind := Connected) is record
       case Kind is
@@ -57,12 +77,16 @@ private
          when Idle =>
             Time       : Ada.Calendar.Time;  --  Time on players display
             Menu_View  : Slim.Menu_Views.Menu_View;
-         when Play =>
-            Volume          : Natural range 0 .. 100;
-            Volume_Set_Time : Ada.Calendar.Time;
-            Song            : League.Strings.Universal_String;
-            Paused          : Boolean;
-            Is_Radio        : Boolean;
+         when Play_Radio | Play_Files =>
+            Play_State : Slim.Players.Play_State;
+
+            case Kind is
+               when Play_Files =>
+                  Playlist : Song_Vectors.Vector;
+                  Index    : Positive;
+               when others =>
+                  null;
+            end case;
       end case;
    end record;
 
@@ -94,5 +118,7 @@ private
 
    function "+" (X : Wide_Wide_String) return League.Strings.Universal_String
      renames League.Strings.To_Universal_String;
+
+   procedure Request_Next_File (Self : in out Player'Class);
 
 end Slim.Players;
