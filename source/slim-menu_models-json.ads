@@ -9,7 +9,6 @@ with Ada.Containers.Hashed_Maps;
 with League.Strings.Hash;
 with League.JSON.Objects;
 with Slim.Players;
-with Slim.Menu_Models.Files;
 with Slim.Menu_Models.Play_Lists;
 
 package Slim.Menu_Models.JSON is
@@ -42,9 +41,7 @@ private
       Path     : League.Strings.Universal_String;
       Playlist : League.Strings.Universal_String;
 
-      File_Path : Menu_Path;
       Playlists : Playlist_Maps.Map;
-      File_Menu : Slim.Menu_Models.Files.File_Menu_Model (Player);
    end record;
 
    overriding function Label
