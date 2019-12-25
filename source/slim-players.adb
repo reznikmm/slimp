@@ -379,7 +379,7 @@ package body Slim.Players is
 
       Strm   : Slim.Messages.strm.Strm_Message;
    begin
-      if Self.State.Kind = Play_Radio then
+      if Self.State.Kind in Play_Radio | Play_Files then
          Strm.Simple_Command (Slim.Messages.strm.Stop);
          Write_Message (Self.Socket, Strm);
          Self.State :=
