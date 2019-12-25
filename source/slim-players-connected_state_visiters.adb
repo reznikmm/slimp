@@ -67,7 +67,7 @@ package body Slim.Players.Connected_State_Visiters is
 
       --  Set dynamic brightness - minimum in range 1 .. 7
       --  21 - coefficient in range (1 .. 20)
-      Grfb.Set_Brightness (16#0b03#);
+      Grfb.Set_Brightness (16#0b04#);
       Write_Message (Player.Socket, Grfb);
 
       --  Send splash screen

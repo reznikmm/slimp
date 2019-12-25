@@ -439,6 +439,7 @@ package body Slim.Players is
            (Idle,
             Ada.Calendar.Clock - 60.0,
             Self.First_Menu);
+         Self.Send_Hearbeat;  --  A reply to this will update display
       end if;
    end Stop;
 
