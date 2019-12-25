@@ -24,12 +24,12 @@ package body Slim.Players.Common_Play_Visiters is
       Button : constant Slim.Messages.BUTN.Button_Kind := Message.Button;
    begin
       case Button is
-         when Slim.Messages.BUTN.Knob_Left =>
+         when Slim.Messages.BUTN.Knob_Left | Slim.Messages.BUTN.Volume_Down =>
             Player.Volume
               (Natural'Max (0, Player.State.Play_State.Volume - 5));
             Update_Display (Player);
 
-         when Slim.Messages.BUTN.Knob_Right =>
+         when Slim.Messages.BUTN.Knob_Right | Slim.Messages.BUTN.Volume_Up =>
             Player.Volume
               (Natural'Min (100, Player.State.Play_State.Volume + 5));
             Update_Display (Player);

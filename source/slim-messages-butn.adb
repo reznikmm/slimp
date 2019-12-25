@@ -38,6 +38,10 @@ package body Slim.Messages.BUTN is
                return Forward;
             when 16#12# =>
                return Play;
+            when 16#19# =>
+               return Volume_Up;
+            when 16#1A# =>
+               return Volume_Down;
             when others =>
                return Something_Else;
          end case;

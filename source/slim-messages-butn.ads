@@ -12,6 +12,7 @@ package Slim.Messages.BUTN is
       Pause,
       Back,
       Knob_Left, Knob_Right, Knob_Push,
+      Volume_Up, Volume_Down,
       Rewind, Forward, Play, Something_Else);
 
    not overriding function Button
