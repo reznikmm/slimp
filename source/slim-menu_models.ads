@@ -51,6 +51,11 @@ package Slim.Menu_Models is
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
         is abstract;
 
+   not overriding function Play_Command
+     (Self : Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+        is abstract;
+
 private
 
    type Menu_Index_Array is array (Positive range <>) of Positive;

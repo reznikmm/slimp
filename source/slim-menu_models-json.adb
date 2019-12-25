@@ -4,17 +4,24 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Streams.Stream_IO;
 with League.JSON.Arrays;
 with League.JSON.Documents;
 with League.JSON.Values;
-with Ada.Streams.Stream_IO;
+with League.String_Vectors;
+with Slim.Menu_Commands.Play_File_Commands;
 with Slim.Menu_Commands.Play_Radio_Commands;
 
 package body Slim.Menu_Models.JSON is
 
    function Read_File
-     (File   : League.Strings.Universal_String)
+     (File : League.Strings.Universal_String)
       return League.JSON.Documents.JSON_Document;
+
+   function Play_Recursive
+     (Self : JSON_Menu_Model'Class;
+      Object : League.JSON.Objects.JSON_Object)
+      return Slim.Menu_Commands.Menu_Command_Access;
 
    -------------------
    -- Enter_Command --
@@ -33,12 +40,17 @@ package body Slim.Menu_Models.JSON is
          Object := Item.Element (Path.List (J)).To_Object;
 
          if Object.Contains (Self.Playlist) then
+            --  Delegate Enter_Command to playlist model
             String := Object.Value (Self.Playlist).To_String;
 
             return Self.Playlists (String).all.Enter_Command
               ((Length => Path.Length - J,
                 List   => Path.List (J + 1 .. Path.Length)));
          elsif J = Path.Length then
+            if not Object.Contains (Self.URL) then
+               return null;
+            end if;
+
             return
               new Slim.Menu_Commands.Play_Radio_Commands.Play_Radio_Command'
                 (Player => Self.Player,
@@ -134,6 +146,7 @@ package body Slim.Menu_Models.JSON is
          Object := Item.Element (Path.List (J)).To_Object;
 
          if Object.Contains (Self.Playlist) then
+            --  Delegate Item_Count to playlist model
             String := Object.Value (Self.Playlist).To_String;
 
             Result := Self.Playlists (String).all.Item_Count
@@ -166,6 +179,7 @@ package body Slim.Menu_Models.JSON is
          Object := Item.Element (Path.List (J)).To_Object;
 
          if Object.Contains (Self.Playlist) then
+            --  Delegate Label to playlist model
             String := Object.Value (Self.Playlist).To_String;
 
             String := Self.Playlists (String).all.Label
@@ -184,6 +198,91 @@ package body Slim.Menu_Models.JSON is
 
       return String;
    end Label;
+
+   ------------------
+   -- Play_Command --
+   ------------------
+
+   overriding function Play_Command
+     (Self : JSON_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+   is
+      String : League.Strings.Universal_String;
+      Object : League.JSON.Objects.JSON_Object;
+      Item   : League.JSON.Arrays.JSON_Array :=
+        Self.Root.Value (Self.Nested).To_Array;
+   begin
+      for J in 1 .. Path.Length loop
+         Object := Item.Element (Path.List (J)).To_Object;
+
+         if Object.Contains (Self.Playlist) then
+            --  Delegate Play_Command to playlist model
+            String := Object.Value (Self.Playlist).To_String;
+
+            return Self.Playlists (String).all.Play_Command
+              ((Length => Path.Length - J,
+                List   => Path.List (J + 1 .. Path.Length)));
+         elsif J = Path.Length then
+            if not Object.Contains (Self.URL) then
+               return Play_Recursive (Self, Object);
+            end if;
+
+            return
+              new Slim.Menu_Commands.Play_Radio_Commands.Play_Radio_Command'
+                (Player => Self.Player,
+                 URL    => Object.Value (Self.URL).To_String);
+         else
+            Item := Object.Value (Self.Nested).To_Array;
+         end if;
+      end loop;
+
+      return null;
+   end Play_Command;
+
+   function Play_Recursive
+     (Self   : JSON_Menu_Model'Class;
+      Object : League.JSON.Objects.JSON_Object)
+      return Slim.Menu_Commands.Menu_Command_Access
+   is
+      procedure Collect (Object : League.JSON.Objects.JSON_Object);
+
+      Relative_Path_List : League.String_Vectors.Universal_String_Vector;
+      Title_List         : League.String_Vectors.Universal_String_Vector;
+
+      procedure Collect (Object : League.JSON.Objects.JSON_Object) is
+         String : League.Strings.Universal_String;
+         List   : constant League.JSON.Arrays.JSON_Array :=
+           Object.Value (Self.Nested).To_Array;
+      begin
+         if Object.Contains (Self.Playlist) then
+            --  Delegate Collect to playlist model
+            String := Object.Value (Self.Playlist).To_String;
+
+            Self.Playlists (String).all.Collect
+              (Relative_Path_List, Title_List);
+            return;
+         end if;
+
+         for J in 1 .. List.Length loop
+            Collect (List (J).To_Object);
+         end loop;
+      end Collect;
+   begin
+      Collect (Object);
+
+      if Relative_Path_List.Is_Empty then
+         return null;
+      end if;
+
+      declare
+         use Slim.Menu_Commands.Play_File_Commands;
+
+         Result : constant Play_File_Command_Access :=
+           new Play_File_Command'(Self.Player, Relative_Path_List, Title_List);
+      begin
+         return Slim.Menu_Commands.Menu_Command_Access (Result);
+      end;
+   end Play_Recursive;
 
    ---------------
    -- Read_File --

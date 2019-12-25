@@ -72,8 +72,11 @@ package body Slim.Menu_Views is
    begin
       if not Self.Menu.Child (Self.Current_Menu) then
          Command := Self.Menu.Enter_Command (Self.Current_Menu);
-         Command.Run;
-         Free (Command);
+
+         if Command not in null then
+            Command.Run;
+            Free (Command);
+         end if;
       end if;
    end Enter;
 
@@ -99,8 +102,18 @@ package body Slim.Menu_Views is
    ----------
 
    procedure Play (Self : in out Menu_View'Class) is
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Slim.Menu_Commands.Menu_Command'Class,
+         Slim.Menu_Commands.Menu_Command_Access);
+
+      Command : Slim.Menu_Commands.Menu_Command_Access;
    begin
-      null;
+      Command := Self.Menu.Play_Command (Self.Current_Menu);
+
+      if Command not in null then
+         Command.Run;
+         Free (Command);
+      end if;
    end Play;
 
    --------

@@ -57,4 +57,8 @@ private
      (Self : JSON_Menu_Model;
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access;
 
+   overriding function Play_Command
+     (Self : JSON_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access;
+
 end Slim.Menu_Models.JSON;

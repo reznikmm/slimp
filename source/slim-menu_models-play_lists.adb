@@ -6,11 +6,30 @@
 
 with Ada.Wide_Wide_Text_IO;
 
-with League.String_Vectors;
-
 with Slim.Menu_Commands.Play_File_Commands;
 
 package body Slim.Menu_Models.Play_Lists is
+
+   -------------
+   -- Collect --
+   -------------
+
+   procedure Collect
+     (Self       : Play_List_Menu_Model'Class;
+      Path_List  : in out League.String_Vectors.Universal_String_Vector;
+      Title_List : in out League.String_Vectors.Universal_String_Vector)
+   is
+      use type League.Strings.Universal_String;
+   begin
+      for J in 1 .. Self.Items.Last_Index loop
+         declare
+            Item : constant Play_List_Item := Self.Items (J);
+         begin
+            Path_List.Append (Self.Root & Item.URI);
+            Title_List.Append (Item.Label);
+         end;
+      end loop;
+   end Collect;
 
    -------------------
    -- Enter_Command --
@@ -133,5 +152,22 @@ package body Slim.Menu_Models.Play_Lists is
          return Self.Items (Path.List (1)).Label;
       end if;
    end Label;
+
+   ------------------
+   -- Play_Command --
+   ------------------
+
+   overriding function Play_Command
+     (Self : Play_List_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+   is
+   begin
+      if Path.Length = 0 then
+         --  Play the list from the first song
+         return Self.Enter_Command ((Length => 1, List => (1 => 1)));
+      else
+         return Self.Enter_Command (Path);
+      end if;
+   end Play_Command;
 
 end Slim.Menu_Models.Play_Lists;

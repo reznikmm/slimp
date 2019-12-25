@@ -36,6 +36,8 @@ package body Slim.Messages.BUTN is
                return Rewind;
             when 16#11# =>
                return Forward;
+            when 16#12# =>
+               return Play;
             when others =>
                return Something_Else;
          end case;

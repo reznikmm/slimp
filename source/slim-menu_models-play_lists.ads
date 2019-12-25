@@ -6,7 +6,9 @@
 
 with Ada.Containers.Vectors;
 
+with League.String_Vectors;
 with League.Strings;
+
 with Slim.Players;
 
 package Slim.Menu_Models.Play_Lists is
@@ -22,6 +24,11 @@ package Slim.Menu_Models.Play_Lists is
      with Pre => File.Starts_With (Root);
    --  Read playlist in M3U format, as described in rfc8216.
    --  Root is HTTP server folder.
+
+   procedure Collect
+     (Self       : Play_List_Menu_Model'Class;
+      Path_List  : in out League.String_Vectors.Universal_String_Vector;
+      Title_List : in out League.String_Vectors.Universal_String_Vector);
 
 private
 
@@ -52,6 +59,10 @@ private
       Path : Slim.Menu_Models.Menu_Path) return Natural;
 
    overriding function Enter_Command
+     (Self : Play_List_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access;
+
+   overriding function Play_Command
      (Self : Play_List_Menu_Model;
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access;
 
