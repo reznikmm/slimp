@@ -11,7 +11,8 @@ package Slim.Messages.BUTN is
      (Preset_1,
       Pause,
       Back,
-      Knob_Left, Knob_Right, Knob_Push, Something_Else);
+      Knob_Left, Knob_Right, Knob_Push,
+      Rewind, Forward, Something_Else);
 
    not overriding function Button
      (Self : BUTN_Message) return Button_Kind;

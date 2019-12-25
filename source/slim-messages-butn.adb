@@ -32,6 +32,10 @@ package body Slim.Messages.BUTN is
                return Knob_Push;
             when 16#0D# =>
                return Back;
+            when 16#10# =>
+               return Rewind;
+            when 16#11# =>
+               return Forward;
             when others =>
                return Something_Else;
          end case;

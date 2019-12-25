@@ -4,6 +4,7 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Slim.Messages.BUTN;
 with Slim.Messages.RESP;
 with Slim.Messages.STAT;
 
@@ -13,6 +14,10 @@ package Slim.Players.Play_Files_Visiters is
 
    type Visiter (Player : not null access Players.Player) is
      new Slim.Players.Common_Play_Visiters.Visiter (Player) with null record;
+
+   overriding procedure BUTN
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.BUTN.BUTN_Message);
 
    overriding procedure RESP
      (Self    : in out Visiter;

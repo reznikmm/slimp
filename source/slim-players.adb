@@ -128,6 +128,59 @@ package body Slim.Players is
       Self.Request_Next_File;
    end Play_Files;
 
+   --------------------
+   -- Play_Next_File --
+   --------------------
+
+   procedure Play_Next_File
+     (Self      : in out Player'Class;
+      Immediate : Boolean := True) is
+   begin
+      if Self.State.Kind /= Play_Files then
+         return;
+      elsif Immediate then
+         declare
+            strm : Slim.Messages.strm.Strm_Message;
+         begin
+            strm.Simple_Command (Command => Slim.Messages.strm.Flush);
+            Write_Message (Self.Socket, strm);
+         end;
+      end if;
+
+      if Self.State.Index < Self.State.Playlist.Last_Index then
+         Self.State.Index := Self.State.Index + 1;
+         Self.Request_Next_File;
+      else
+         Self.Stop;
+      end if;
+   end Play_Next_File;
+
+   ------------------------
+   -- Play_Previous_File --
+   ------------------------
+
+   procedure Play_Previous_File (Self      : in out Player'Class;
+                                 Immediate : Boolean := True) is
+   begin
+      if Self.State.Kind /= Play_Files then
+         return;
+      elsif Immediate then
+         declare
+            strm : Slim.Messages.strm.Strm_Message;
+         begin
+            strm.Simple_Command (Command => Slim.Messages.strm.Flush);
+            Write_Message (Self.Socket, strm);
+         end;
+      end if;
+
+      if Self.State.Index > 1 then
+         Self.State.Index := Self.State.Index - 1;
+         Self.Request_Next_File;
+      else
+         Self.Stop;
+      end if;
+   end Play_Previous_File;
+
    ----------------
    -- Play_Radio --
    ----------------

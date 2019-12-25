@@ -11,6 +11,27 @@ with Slim.Messages.cont;
 package body Slim.Players.Play_Files_Visiters is
 
    ----------
+   -- BUTN --
+   ----------
+
+   overriding procedure BUTN
+     (Self    : in out Visiter;
+      Message : not null access Slim.Messages.BUTN.BUTN_Message)
+   is
+      Player : Players.Player renames Self.Player.all;
+      Button : constant Slim.Messages.BUTN.Button_Kind := Message.Button;
+   begin
+      case Button is
+         when Slim.Messages.BUTN.Forward =>
+            Player.Play_Next_File;
+         when Slim.Messages.BUTN.Rewind =>
+            Player.Play_Previous_File;
+         when others =>
+            Slim.Players.Common_Play_Visiters.Visiter (Self).BUTN (Message);
+      end case;
+   end BUTN;
+
+   ----------
    -- RESP --
    ----------
 
@@ -44,12 +65,7 @@ package body Slim.Players.Play_Files_Visiters is
       elsif Message.Event = "STMd" then
          --  Decoder ready. Instruct server that we are ready for the next
          --  track (if any).
-         Player.State.Index := Player.State.Index + 1;
-         Ada.Text_IO.Put_Line ("INDEX=" & Player.State.Index'Img);
-
-         if Player.State.Index <= Player.State.Playlist.Last_Index then
-            Player.Request_Next_File;
-         end if;
+         Player.Play_Next_File (Immediate => False);
       elsif Message.Event = "STMu" then
          --  Underrun. Normal end of playback.
          Player.Stop;

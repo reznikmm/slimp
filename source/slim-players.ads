@@ -47,6 +47,14 @@ package Slim.Players is
      (Self : in out Player'Class;
       List : Song_Array);
 
+   procedure Play_Next_File
+     (Self      : in out Player'Class;
+      Immediate : Boolean := True);
+
+   procedure Play_Previous_File
+     (Self      : in out Player'Class;
+      Immediate : Boolean := True);
+
    procedure Stop (Self : in out Player'Class);
 
    procedure Volume
