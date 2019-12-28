@@ -4,6 +4,7 @@
 --  License-Filename: LICENSE
 -------------------------------------------------------------
 
+with Ada.Numerics.Discrete_Random;
 with Ada.Streams.Stream_IO;
 with League.JSON.Arrays;
 with League.JSON.Documents;
@@ -239,6 +240,10 @@ package body Slim.Menu_Models.JSON is
       return null;
    end Play_Command;
 
+   --------------------
+   -- Play_Recursive --
+   --------------------
+
    function Play_Recursive
      (Self   : JSON_Menu_Model'Class;
       Object : League.JSON.Objects.JSON_Object)
@@ -246,8 +251,48 @@ package body Slim.Menu_Models.JSON is
    is
       procedure Collect (Object : League.JSON.Objects.JSON_Object);
 
+      procedure Shuffle
+        (Origin_Paths  : League.String_Vectors.Universal_String_Vector;
+         Origin_Titles : League.String_Vectors.Universal_String_Vector;
+         Paths         : out League.String_Vectors.Universal_String_Vector;
+         Titles        : out League.String_Vectors.Universal_String_Vector);
+
+      -------------
+      -- Shuffle --
+      -------------
+
+      procedure Shuffle
+        (Origin_Paths  : League.String_Vectors.Universal_String_Vector;
+         Origin_Titles : League.String_Vectors.Universal_String_Vector;
+         Paths         : out League.String_Vectors.Universal_String_Vector;
+         Titles        : out League.String_Vectors.Universal_String_Vector)
+      is
+         package Randoms is new Ada.Numerics.Discrete_Random (Positive);
+
+         Generator : Randoms.Generator;
+         Map       : array (1 .. Origin_Paths.Length) of Positive;
+         Last      : Natural := Map'Last;
+         Index     : Positive;
+      begin
+         for J in Map'Range loop
+            Map (J) := J;
+         end loop;
+
+         while Last > 0 loop
+            Index := (Randoms.Random (Generator) mod Last) + 1;
+            Paths.Append (Origin_Paths (Map (Index)));
+            Titles.Append (Origin_Titles (Map (Index)));
+            Map (Index) := Map (Last);
+            Last := Last - 1;
+         end loop;
+      end Shuffle;
+
       Relative_Path_List : League.String_Vectors.Universal_String_Vector;
       Title_List         : League.String_Vectors.Universal_String_Vector;
+
+      -------------
+      -- Collect --
+      -------------
 
       procedure Collect (Object : League.JSON.Objects.JSON_Object) is
          String : League.Strings.Universal_String;
@@ -278,8 +323,14 @@ package body Slim.Menu_Models.JSON is
          use Slim.Menu_Commands.Play_File_Commands;
 
          Result : constant Play_File_Command_Access :=
-           new Play_File_Command'(Self.Player, Relative_Path_List, Title_List);
+           new Play_File_Command (Self.Player);
       begin
+         Shuffle
+           (Relative_Path_List,
+            Title_List,
+            Result.Relative_Path_List,
+            Result.Title_List);
+
          return Slim.Menu_Commands.Menu_Command_Access (Result);
       end;
    end Play_Recursive;
