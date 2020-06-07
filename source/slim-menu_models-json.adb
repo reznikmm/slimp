@@ -274,6 +274,8 @@ package body Slim.Menu_Models.JSON is
          Last      : Natural := Map'Last;
          Index     : Positive;
       begin
+         Randoms.Reset (Generator);
+
          for J in Map'Range loop
             Map (J) := J;
          end loop;

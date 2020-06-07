@@ -122,7 +122,8 @@ package body Slim.Players is
          (Volume          => 30,
           Volume_Set_Time => Ada.Calendar.Clock - 60.0,
           Current_Song    => List (1).Title,
-          Paused          => False),
+          Paused          => False,
+          Seconds         => 0),
          Playlist, 1);
 
       Self.Request_Next_File;
@@ -248,7 +249,8 @@ package body Slim.Players is
          (Volume          => 30,
           Volume_Set_Time => Ada.Calendar.Clock - 60.0,
           Current_Song    => League.Strings.Empty_Universal_String,
-          Paused          => False));
+          Paused          => False,
+          Seconds         => 0));
 
    exception
       when GNAT.Sockets.Host_Error =>

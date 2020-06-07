@@ -71,6 +71,7 @@ private
       Volume          : Natural range 0 .. 100;
       Volume_Set_Time : Ada.Calendar.Time;
       Current_Song    : League.Strings.Universal_String;
+      Seconds         : Natural;
       Paused          : Boolean;
    end record;
 

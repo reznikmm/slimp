@@ -34,7 +34,7 @@ package body Slim.Messages is
          package IO is new Ada.Storage_IO (Element);
          Buffer : IO.Buffer_Type;
       begin
-         for J in Buffer'Range loop
+         for J in reverse Buffer'Range loop
             Buffer (J) := System.Storage_Elements.Storage_Element
               (Data.Element (Input));
             Input := Input + 1;

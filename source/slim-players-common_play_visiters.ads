@@ -17,5 +17,5 @@ package Slim.Players.Common_Play_Visiters is
      (Self    : in out Visiter;
       Message : not null access Slim.Messages.BUTN.BUTN_Message);
 
-   procedure Update_Display (Self : Player);
+   procedure Update_Display (Self : in out Player);
 end Slim.Players.Common_Play_Visiters;

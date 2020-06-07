@@ -7,6 +7,7 @@
 with Ada.Text_IO;
 
 with Slim.Messages.cont;
+with League.Settings;
 
 package body Slim.Players.Play_Files_Visiters is
 
@@ -26,6 +27,16 @@ package body Slim.Players.Play_Files_Visiters is
             Player.Play_Next_File;
          when Slim.Messages.BUTN.Rewind =>
             Player.Play_Previous_File;
+         when Slim.Messages.BUTN.Pause =>
+            Slim.Players.Common_Play_Visiters.Visiter (Self).BUTN (Message);
+
+            if Player.State.Play_State.Paused then
+               declare
+                  Setting : League.Settings.Settings;
+               begin
+                  null;
+               end;
+            end if;
          when others =>
             Slim.Players.Common_Play_Visiters.Visiter (Self).BUTN (Message);
       end case;
@@ -69,6 +80,10 @@ package body Slim.Players.Play_Files_Visiters is
       elsif Message.Event = "STMu" then
          --  Underrun. Normal end of playback.
          Player.Stop;
+      elsif Message.Event = "STMt"
+        and then Player.State.Kind = Play_Files
+      then
+         Player.State.Play_State.Seconds := Message.Elapsed_Seconds;
       elsif not Player.State.Play_State.Current_Song.Is_Empty then
          null;
       elsif Message.Event = "STMc" then

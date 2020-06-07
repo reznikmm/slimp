@@ -12,6 +12,8 @@ with Slim.Players.Displays;
 
 package body Slim.Players.Common_Play_Visiters is
 
+   function Image (Seconds : Natural) return League.Strings.Universal_String;
+
    ----------
    -- BUTN --
    ----------
@@ -56,25 +58,53 @@ package body Slim.Players.Common_Play_Visiters is
       end case;
    end BUTN;
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Seconds : Natural) return League.Strings.Universal_String is
+      Min : constant Wide_Wide_String :=
+        Natural'Wide_Wide_Image (Seconds / 60);
+      Sec : constant Wide_Wide_String :=
+        Natural'Wide_Wide_Image (Seconds mod 60);
+      Result : League.Strings.Universal_String;
+   begin
+      Result.Append (Min (2 .. Min'Last));
+      Result.Append (":");
+
+      if Sec'Length <= 2 then
+         Result.Append ("0");
+      end if;
+
+      Result.Append (Sec (2 .. Sec'Last));
+      return Result;
+   end Image;
+
    --------------------
    -- Update_Display --
    --------------------
 
-   procedure Update_Display (Self : Player) is
+   procedure Update_Display (Self : in out Player) is
       use type Ada.Calendar.Time;
 
       Display : Slim.Players.Displays.Display := Self.Get_Display;
+      State   : Player_State renames Self.State;
       Time    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
       Text    : League.Strings.Universal_String;
-      Song    : constant League.Strings.Universal_String :=
-        Self.State.Play_State.Current_Song;
-      Volume  : constant Wide_Wide_String :=
-        Natural'Wide_Wide_Image (Self.State.Play_State.Volume);
+      Song    : League.Strings.Universal_String;
+
+      function Volume return Wide_Wide_String is
+        (Natural'Wide_Wide_Image (State.Play_State.Volume));
 
    begin
+      if State.Kind not in Play_Radio | Play_Files then
+         return;
+      end if;
+
+      Song := State.Play_State.Current_Song;
       Slim.Players.Displays.Clear (Display);
 
-      if Time - Self.State.Play_State.Volume_Set_Time < 3.0
+      if Time - State.Play_State.Volume_Set_Time < 3.0
         or Song.Is_Empty
       then
          Text.Append ("Volume:");
@@ -87,7 +117,7 @@ package body Slim.Players.Common_Play_Visiters is
             Y    => 6,
             Font => Self.Font,
             Text => Text);
-      elsif Self.State.Play_State.Paused then
+      elsif State.Play_State.Paused then
 
          Text.Append ("Pause");
 
@@ -95,6 +125,16 @@ package body Slim.Players.Common_Play_Visiters is
            (Self => Display,
             X    => 1,
             Y    => 2 - Slim.Fonts.Size (Self.Font, Song).Bottom,
+            Font => Self.Font,
+            Text => Text);
+      elsif State.Kind = Play_Files then
+
+         Text.Append (Image (State.Play_State.Seconds));
+
+         Slim.Players.Displays.Draw_Text
+           (Self => Display,
+            X    => 158 - Slim.Fonts.Size (Self.Font, Text).Right,
+            Y    => 6,
             Font => Self.Font,
             Text => Text);
       end if;

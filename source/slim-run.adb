@@ -7,8 +7,9 @@
 with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Text_IO;
-
 with GNAT.Sockets;
+
+with League.Application;
 with League.Strings;
 
 with Slim.Players;
@@ -105,6 +106,11 @@ procedure Slim.Run is
    Listener : Socket_Type;
    Client   : Socket_Type;
 begin
+   League.Application.Set_Application_Name (+"SlimProto Player");
+   League.Application.Set_Application_Version (+"0.1");
+   League.Application.Set_Organization_Name (+"Matreshka Project");
+   League.Application.Set_Organization_Domain (+"forge.ada-ru.org");
+
    Address.Addr := Any_Inet_Addr;
    Address.Port := 3483;
    Create_Socket (Listener);
