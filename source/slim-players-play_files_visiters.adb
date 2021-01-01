@@ -7,7 +7,6 @@
 with Ada.Text_IO;
 
 with Slim.Messages.cont;
-with League.Settings;
 
 package body Slim.Players.Play_Files_Visiters is
 
@@ -31,11 +30,7 @@ package body Slim.Players.Play_Files_Visiters is
             Slim.Players.Common_Play_Visiters.Visiter (Self).BUTN (Message);
 
             if Player.State.Play_State.Paused then
-               declare
-                  Setting : League.Settings.Settings;
-               begin
-                  null;
-               end;
+               Player.Save_Position;
             end if;
          when others =>
             Slim.Players.Common_Play_Visiters.Visiter (Self).BUTN (Message);

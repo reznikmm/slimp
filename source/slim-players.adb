@@ -8,8 +8,13 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 with Ada.Wide_Wide_Text_IO;
+with Interfaces;
+with System;
 
 with League.IRIs;
+with League.Settings;
+with League.String_Vectors;
+with League.Holders;
 
 with Slim.Menu_Models.JSON;
 with Slim.Message_Decoders;
@@ -21,7 +26,6 @@ with Slim.Players.Displays;
 with Slim.Players.Idle_State_Visiters;
 with Slim.Players.Play_Radio_Visiters;
 with Slim.Players.Play_Files_Visiters;
-with League.String_Vectors;
 
 package body Slim.Players is
 
@@ -39,6 +43,10 @@ package body Slim.Players is
 
    procedure Free is new Ada.Unchecked_Deallocation
      (Slim.Messages.Message'Class, Slim.Messages.Message_Access);
+
+   function Seconds_To_Bytes
+     (File : League.Strings.Universal_String;
+      Skip : Positive) return League.Strings.Universal_String;
 
    ----------------
    -- First_Menu --
@@ -72,6 +80,45 @@ package body Slim.Players is
          Slim.Players.Displays.Initialize (Result, Self);
       end return;
    end Get_Display;
+
+   ------------------
+   -- Get_Position --
+   ------------------
+
+   procedure Get_Position
+     (Self  : in out Player'Class;
+      M3U   : League.Strings.Universal_String;
+      Index : out Positive;
+      Skip  : out Natural)
+   is
+      pragma Unreferenced (Self);
+      Setting : League.Settings.Settings;
+      Key     : League.Strings.Universal_String;
+      Value   : League.Holders.Holder;
+   begin
+      Key.Append ("Pause/Index.");
+      Key.Append (M3U);
+      Value := Setting.Value (Key);
+
+      if League.Holders.Is_Universal_String (Value) then
+         Key := League.Holders.Element (Value);
+         Index := Positive'Wide_Wide_Value (Key.To_Wide_Wide_String);
+      else
+         Index := 1;
+      end if;
+
+      Key.Clear;
+      Key.Append ("Pause/Skip.");
+      Key.Append (M3U);
+      Value := Setting.Value (Key);
+
+      if League.Holders.Is_Universal_String (Value) then
+         Key := League.Holders.Element (Value);
+         Skip := Natural'Wide_Wide_Value (Key.To_Wide_Wide_String);
+      else
+         Skip := 0;
+      end if;
+   end Get_Position;
 
    ----------------
    -- Initialize --
@@ -107,7 +154,11 @@ package body Slim.Players is
 
    procedure Play_Files
      (Self : in out Player'Class;
-      List : Song_Array)
+      Root : League.Strings.Universal_String;
+      M3U  : League.Strings.Universal_String;
+      List : Song_Array;
+      From : Positive;
+      Skip : Natural)
    is
       use type Ada.Calendar.Time;
 
@@ -121,10 +172,10 @@ package body Slim.Players is
         (Play_Files,
          (Volume          => 30,
           Volume_Set_Time => Ada.Calendar.Clock - 60.0,
-          Current_Song    => List (1).Title,
+          Current_Song    => List (From).Title,
           Paused          => False,
           Seconds         => 0),
-         Playlist, 1);
+         Root, M3U, Playlist, From, Skip);
 
       Self.Request_Next_File;
    end Play_Files;
@@ -150,6 +201,7 @@ package body Slim.Players is
 
       if Self.State.Index < Self.State.Playlist.Last_Index then
          Self.State.Index := Self.State.Index + 1;
+         Self.State.Offset := 0;
          Self.Request_Next_File;
       else
          Self.Stop;
@@ -387,6 +439,7 @@ package body Slim.Players is
    -----------------------
 
    procedure Request_Next_File (Self : in out Player'Class) is
+      use type League.Strings.Universal_String;
       Item    : constant Song := Self.State.Playlist (Self.State.Index);
       File    : constant League.Strings.Universal_String := Item.File;
       Strm    : Slim.Messages.strm.Strm_Message;
@@ -398,6 +451,18 @@ package body Slim.Players is
       Line.Append (" HTTP/1.0");
       Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
       Request.Append (Line);
+
+      if Self.State.Offset > 0 then
+         Line.Clear;
+         Line.Append ("Range: ");
+         Line.Append
+           (Seconds_To_Bytes
+              (Self.State.Root & File, Self.State.Offset));
+         Request.Append (Line);
+
+         Ada.Wide_Wide_Text_IO.Put_Line (Line.To_Wide_Wide_String);
+      end if;
+
       Request.Append (+"");
       Request.Append (+"");
 
@@ -411,6 +476,251 @@ package body Slim.Players is
 
       Self.State.Play_State.Current_Song := Item.Title;
    end Request_Next_File;
+
+   -------------------
+   -- Save_Position --
+   -------------------
+
+   procedure Save_Position (Self : in out Player'Class) is
+      use type League.Strings.Universal_String;
+      Setting : League.Settings.Settings;
+      Value   : League.Strings.Universal_String;
+      Skip    : constant Natural :=
+        Self.State.Offset + Self.State.Play_State.Seconds;
+   begin
+      if Self.State.Kind /= Play_Files
+        or else Self.State.M3U_Name.Is_Empty
+      then
+         return;
+      end if;
+
+      Value.Append (Integer'Wide_Wide_Image (Self.State.Index));
+      Value := Value.Tail_From (2);
+
+      Setting.Set_Value
+        ("Pause/Index." & Self.State.M3U_Name,
+         League.Holders.To_Holder (Value));
+
+      Value.Clear;
+      Value.Append (Integer'Wide_Wide_Image (Skip));
+      Value := Value.Tail_From (2);
+
+      Setting.Set_Value
+        ("Pause/Skip." & Self.State.M3U_Name,
+         League.Holders.To_Holder (Value));
+   end Save_Position;
+
+   ----------------------
+   -- Seconds_To_Bytes --
+   ----------------------
+
+   function Seconds_To_Bytes
+     (File : League.Strings.Universal_String;
+      Skip : Positive) return League.Strings.Universal_String
+   is
+      procedure Read_ID3 (Input : in out Ada.Streams.Stream_IO.File_Type);
+      --  Skip ID3 header if any
+
+      procedure Read_MP3_Header
+        (Input    : in out Ada.Streams.Stream_IO.File_Type;
+         Bit_Rate : out Ada.Streams.Stream_Element_Count);
+
+      function Image (Value : Ada.Streams.Stream_Element_Count)
+        return Wide_Wide_String;
+
+      -----------
+      -- Image --
+      -----------
+
+      function Image (Value : Ada.Streams.Stream_Element_Count)
+        return Wide_Wide_String
+      is
+         Img : constant Wide_Wide_String :=
+           Ada.Streams.Stream_Element_Count'Wide_Wide_Image (Value);
+      begin
+         return Img (2 .. Img'Last);
+      end Image;
+
+      --------------
+      -- Read_ID3 --
+      --------------
+
+      procedure Read_ID3 (Input : in out Ada.Streams.Stream_IO.File_Type) is
+         use type Ada.Streams.Stream_Element;
+         use type Ada.Streams.Stream_Element_Count;
+         use type Ada.Streams.Stream_IO.Count;
+         Index : constant Ada.Streams.Stream_IO.Positive_Count :=
+           Ada.Streams.Stream_IO.Index (Input);
+         Data : Ada.Streams.Stream_Element_Array (1 .. 10);
+         Last : Ada.Streams.Stream_Element_Count;
+         Skip : Ada.Streams.Stream_IO.Count := 0;
+      begin
+         Ada.Streams.Stream_IO.Read (Input, Data, Last);
+         if Last = Data'Last
+           and then Data (1) = Character'Pos ('I')
+           and then Data (2) = Character'Pos ('D')
+           and then Data (3) = Character'Pos ('3')
+         then
+            for J of Data (7 .. 10) loop
+               Skip := Skip * 128 + Ada.Streams.Stream_IO.Count (J);
+            end loop;
+
+            Ada.Streams.Stream_IO.Set_Index
+              (Input, Index + Data'Length + Skip);
+         else
+            Ada.Streams.Stream_IO.Set_Index (Input, Index);
+         end if;
+      end Read_ID3;
+
+      ---------------------
+      -- Read_MP3_Header --
+      ---------------------
+
+      procedure Read_MP3_Header
+        (Input    : in out Ada.Streams.Stream_IO.File_Type;
+         Bit_Rate : out Ada.Streams.Stream_Element_Count)
+      is
+         use type Interfaces.Unsigned_16;
+         use type Ada.Streams.Stream_IO.Count;
+         type MPEG_Version is (MPEG_2_5, Wrong, MPEG_2, MPEG_1);
+         pragma Unreferenced (Wrong);
+         for MPEG_Version use (0, 1, 2, 3);
+         type MPEG_Layer is (Wrong, Layer_III, Layer_II, Layer_I);
+         pragma Unreferenced (Wrong);
+         for MPEG_Layer use (0, 1, 2, 3);
+         type MPEG_Mode is (Stereo, Joint_Stereo, Dual_Channel, Mono);
+         pragma Unreferenced (Stereo, Joint_Stereo, Dual_Channel, Mono);
+         for MPEG_Mode use (0, 1, 2, 3);
+         type MP3_Header is record
+            Sync_Word  : Interfaces.Unsigned_16 range 0 .. 2 ** 11 - 1;
+            Version    : MPEG_Version;
+            Layer      : MPEG_Layer;
+            Protection : Boolean;
+            Bit_Rate   : Interfaces.Unsigned_8 range 0 .. 15;
+            Frequency  : Interfaces.Unsigned_8 range 0 .. 3;
+            Padding    : Boolean;
+            Is_Private : Boolean;
+            Mode       : MPEG_Mode;
+            Extension  : Interfaces.Unsigned_8 range 0 .. 3;
+            Copy       : Boolean;
+            Original   : Boolean;
+            Emphasis   : Interfaces.Unsigned_8 range 0 .. 3;
+         end record;
+         for MP3_Header'Object_Size use 32;
+         for MP3_Header'Bit_Order use System.High_Order_First;
+         for MP3_Header use record
+            Sync_Word  at 0 range 0 .. 10;
+            Version    at 0 range 11 .. 12;
+            Layer      at 0 range 13 .. 14;
+            Protection at 0 range 15 .. 15;
+            Bit_Rate   at 0 range 16 .. 19;
+            Frequency  at 0 range 20 .. 21;
+            Padding    at 0 range 22 .. 22;
+            Is_Private at 0 range 23 .. 23;
+            Mode       at 0 range 24 .. 25;
+            Extension  at 0 range 26 .. 27;
+            Copy       at 0 range 28 .. 28;
+            Original   at 0 range 29 .. 29;
+            Emphasis   at 0 range 30 .. 31;
+         end record;
+
+         procedure Read_Header (Header : out MP3_Header);
+
+         MPEG_1_Bit_Rate : constant array
+           (MPEG_Layer range Layer_III .. Layer_I,
+            Interfaces.Unsigned_8 range 1 .. 14) of
+              Ada.Streams.Stream_Element_Count :=
+             (Layer_I => (32_000, 64_000, 96_000, 128_000, 160_000, 192_000,
+                          224_000, 256_000, 288_000, 320_000, 352_000, 384_000,
+                          416_000, 448_000),
+              Layer_II => (32_000, 48_000, 56_000, 64_000, 80_000, 96_000,
+                           112_000, 128_000, 160_000, 192_000, 224_000,
+                           256_000, 320_000, 384_000),
+              Layer_III => (32_000, 40_000, 48_000, 56_000, 64_000, 80_000,
+                            96_000, 112_000, 128_000, 160_000, 192_000,
+                            224_000, 256_000, 320_000));
+
+         MPEG_2_Bit_Rate : constant array
+           (MPEG_Layer range Layer_II .. Layer_I,
+            Interfaces.Unsigned_8 range 1 .. 14) of
+              Ada.Streams.Stream_Element_Count :=
+             (Layer_I => (32_000, 48_000, 56_000, 64_000, 80_000, 96_000,
+                          112_000, 128_000, 144_000, 160_000, 176_000, 192_000,
+                          224_000, 256_000),
+              Layer_II => (8_000, 16_000, 24_000, 32_000, 40_000, 48_000,
+                           56_000, 64_000, 80_000, 96_000, 112_000,
+                           128_000, 144_000, 160_000));
+
+         -----------------
+         -- Read_Header --
+         -----------------
+
+         procedure Read_Header (Header : out MP3_Header) is
+            use type System.Bit_Order;
+            Stream : constant Ada.Streams.Stream_IO.Stream_Access :=
+              Ada.Streams.Stream_IO.Stream (Input);
+            Data   : Ada.Streams.Stream_Element_Array (1 .. 4)
+              with Import, Address => Header'Address;
+         begin
+            if MP3_Header'Bit_Order = System.Default_Bit_Order then
+               Ada.Streams.Stream_Element_Array'Read (Stream, Data);
+            else
+               for X of reverse Data loop
+                  Ada.Streams.Stream_Element'Read (Stream, X);
+               end loop;
+            end if;
+         end Read_Header;
+
+         Header : MP3_Header := (Sync_Word => 0, others => <>);
+      begin
+         while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
+            Read_Header (Header);
+
+            exit when Header.Sync_Word = 16#7FF#;
+
+            Ada.Streams.Stream_IO.Set_Index
+              (Input,
+               Ada.Streams.Stream_IO.Index (Input) - 3);
+         end loop;
+
+         if Header.Sync_Word /= 16#7FF# then
+            Bit_Rate := 0;
+         elsif Header.Version = MPEG_1 and
+           Header.Layer in MPEG_1_Bit_Rate'Range (1) and
+           Header.Bit_Rate in MPEG_1_Bit_Rate'Range (2)
+         then
+            Bit_Rate := MPEG_1_Bit_Rate (Header.Layer, Header.Bit_Rate);
+         elsif Header.Version in MPEG_2 .. MPEG_2_5 and
+           Header.Layer in Layer_III .. Layer_I and
+           Header.Bit_Rate in MPEG_2_Bit_Rate'Range (2)
+         then
+            Bit_Rate := MPEG_2_Bit_Rate
+              (MPEG_Layer'Max (Header.Layer, Layer_II),
+               Header.Bit_Rate);
+         else
+            Bit_Rate := 0;
+         end if;
+      end Read_MP3_Header;
+
+      use type Ada.Streams.Stream_Element_Count;
+
+      Input    : Ada.Streams.Stream_IO.File_Type;
+      Bit_Rate : Ada.Streams.Stream_Element_Count;
+      Offset   : Ada.Streams.Stream_Element_Count;
+      Result   : League.Strings.Universal_String;
+   begin
+      Ada.Streams.Stream_IO.Open
+        (Input, Ada.Streams.Stream_IO.In_File, File.To_UTF_8_String);
+      Read_ID3 (Input);
+      Read_MP3_Header (Input, Bit_Rate);
+      Offset := Bit_Rate * Ada.Streams.Stream_Element_Count (Skip) / 8;
+      Result.Append ("bytes=");
+      Result.Append (Image (Offset));
+      Result.Append ("-");
+      Ada.Streams.Stream_IO.Close (Input);
+
+      return Result;
+   end Seconds_To_Bytes;
 
    -------------------
    -- Send_Hearbeat --

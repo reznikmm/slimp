@@ -10,6 +10,11 @@ with Slim.Menu_Commands.Play_File_Commands;
 
 package body Slim.Menu_Models.Play_Lists is
 
+   function Create_Play_Command
+     (Self : Play_List_Menu_Model'Class;
+      Path : Menu_Path;
+      Skip : Natural := 0) return Slim.Menu_Commands.Menu_Command_Access;
+
    -------------
    -- Collect --
    -------------
@@ -25,19 +30,20 @@ package body Slim.Menu_Models.Play_Lists is
          declare
             Item : constant Play_List_Item := Self.Items (J);
          begin
-            Path_List.Append (Self.Root & Item.URI);
+            Path_List.Append (Self.Path & Item.URI);
             Title_List.Append (Item.Label);
          end;
       end loop;
    end Collect;
 
-   -------------------
-   -- Enter_Command --
-   -------------------
+   -------------------------
+   -- Create_Play_Command --
+   -------------------------
 
-   overriding function Enter_Command
-     (Self : Play_List_Menu_Model;
-      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
+   function Create_Play_Command
+     (Self : Play_List_Menu_Model'Class;
+      Path : Menu_Path;
+      Skip : Natural := 0) return Slim.Menu_Commands.Menu_Command_Access
    is
       use type League.Strings.Universal_String;
       use Slim.Menu_Commands.Play_File_Commands;
@@ -45,24 +51,33 @@ package body Slim.Menu_Models.Play_Lists is
       Result : constant Play_File_Command_Access :=
         new Play_File_Command (Self.Player);
 
-      Index : Positive := Path.List (1);
    begin
+      Result.Root := Self.Root;
+      Result.M3U_Name := Self.M3U;
+      Result.Start := Path.List (1);
+      Result.Skip := Skip;
+
       for J in 1 .. Self.Items.Last_Index loop
          declare
-            Item : constant Play_List_Item := Self.Items (Index);
+            Item : constant Play_List_Item := Self.Items (J);
          begin
-            Result.Relative_Path_List.Append (Self.Root & Item.URI);
+            Result.Relative_Path_List.Append (Self.Path & Item.URI);
             Result.Title_List.Append (Item.Label);
-
-            Index := Index + 1;
-
-            if Index > Self.Items.Last_Index then
-               Index := 1;
-            end if;
          end;
       end loop;
 
       return Slim.Menu_Commands.Menu_Command_Access (Result);
+   end Create_Play_Command;
+
+   -------------------
+   -- Enter_Command --
+   -------------------
+
+   overriding function Enter_Command
+     (Self : Play_List_Menu_Model;
+      Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access is
+   begin
+      return Self.Create_Play_Command (Path);
    end Enter_Command;
 
    ----------------
@@ -80,8 +95,10 @@ package body Slim.Menu_Models.Play_Lists is
       Next  : League.Strings.Universal_String;
    begin
       Self.Label := Label;
-      Self.Root := File.Tail_From (Root.Length + 1);
-      Self.Root := Self.Root.Head (Self.Root.Last_Index ('/'));
+      Self.M3U := File;
+      Self.Root := Root;
+      Self.Path := File.Tail_From (Root.Length + 1);
+      Self.Path := Self.Path.Head (Self.Path.Last_Index ('/'));
 
       Ada.Wide_Wide_Text_IO.Open
         (Input, Ada.Wide_Wide_Text_IO.In_File, Name);
@@ -144,11 +161,8 @@ package body Slim.Menu_Models.Play_Lists is
       return League.Strings.Universal_String is
    begin
       if Path.Length = 0 then
-         Ada.Wide_Wide_Text_IO.Put_Line (Self.Label.To_Wide_Wide_String);
          return Self.Label;
       else
-         Ada.Wide_Wide_Text_IO.Put_Line
-           (Self.Items (Path.List (1)).Label.To_Wide_Wide_String);
          return Self.Items (Path.List (1)).Label;
       end if;
    end Label;
@@ -161,12 +175,16 @@ package body Slim.Menu_Models.Play_Lists is
      (Self : Play_List_Menu_Model;
       Path : Menu_Path) return Slim.Menu_Commands.Menu_Command_Access
    is
+      Index : Positive;
+      Skip  : Natural;
    begin
       if Path.Length = 0 then
-         --  Play the list from the first song
-         return Self.Enter_Command ((Length => 1, List => (1 => 1)));
+         Self.Player.Get_Position (Self.M3U, Index, Skip);
+         --  Try to continue from saved prosition
+         return Self.Create_Play_Command
+           ((Length => 1, List => (1 => Index)), Skip);
       else
-         return Self.Enter_Command (Path);
+         return Self.Create_Play_Command (Path);
       end if;
    end Play_Command;
 

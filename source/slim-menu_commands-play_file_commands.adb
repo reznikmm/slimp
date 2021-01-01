@@ -17,7 +17,8 @@ package body Slim.Menu_Commands.Play_File_Commands is
          Value (J) := (Self.Relative_Path_List (J), Self.Title_List (J));
       end loop;
 
-      Self.Player.Play_Files (Value);
+      Self.Player.Play_Files
+        (Self.Root, Self.M3U_Name, Value, Self.Start, Skip => Self.Skip);
    end Run;
 
 end Slim.Menu_Commands.Play_File_Commands;

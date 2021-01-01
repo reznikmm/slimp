@@ -92,6 +92,7 @@ package body Slim.Players.Common_Play_Visiters is
       Time    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
       Text    : League.Strings.Universal_String;
       Song    : League.Strings.Universal_String;
+      Seconds : Natural;
 
       function Volume return Wide_Wide_String is
         (Natural'Wide_Wide_Image (State.Play_State.Volume));
@@ -128,8 +129,9 @@ package body Slim.Players.Common_Play_Visiters is
             Font => Self.Font,
             Text => Text);
       elsif State.Kind = Play_Files then
+         Seconds := State.Play_State.Seconds + State.Offset;
 
-         Text.Append (Image (State.Play_State.Seconds));
+         Text.Append (Image (Seconds));
 
          Slim.Players.Displays.Draw_Text
            (Self => Display,

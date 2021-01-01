@@ -45,7 +45,11 @@ private
      limited new Slim.Menu_Models.Menu_Model with
    record
       Root  : League.Strings.Universal_String;
+      --  Directory where Path is located (HTTP server root folder)
+      Path  : League.Strings.Universal_String;
+      --  Path from the Root
       Label : League.Strings.Universal_String;
+      M3U   : League.Strings.Universal_String;
       Items : Play_List_Item_Vectors.Vector;
    end record;
 

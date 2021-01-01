@@ -45,7 +45,13 @@ package Slim.Players is
 
    procedure Play_Files
      (Self : in out Player'Class;
-      List : Song_Array);
+      Root : League.Strings.Universal_String;
+      M3U  : League.Strings.Universal_String;
+      List : Song_Array;
+      From : Positive;
+      Skip : Natural);
+   --  Start playing given playlist. Skip given number of seconds of the first
+   --  song
 
    procedure Play_Next_File
      (Self      : in out Player'Class;
@@ -56,6 +62,14 @@ package Slim.Players is
       Immediate : Boolean := True);
 
    procedure Stop (Self : in out Player'Class);
+   procedure Save_Position (Self : in out Player'Class);
+   --  If play a playlist, then remember current position
+   procedure Get_Position
+     (Self  : in out Player'Class;
+      M3U   : League.Strings.Universal_String;
+      Index : out Positive;
+      Skip  : out Natural);
+   --  Find saved position for given playlist. Return (1,0) if not found
 
    procedure Volume
      (Self  : in out Player'Class;
@@ -91,8 +105,12 @@ private
 
             case Kind is
                when Play_Files =>
+                  Root     : League.Strings.Universal_String;
+                  M3U_Name : League.Strings.Universal_String;
                   Playlist : Song_Vectors.Vector;
                   Index    : Positive;
+                  Offset   : Natural;
+                  --  If current file started playing with Offset
                when others =>
                   null;
             end case;
